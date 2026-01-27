@@ -1,0 +1,114 @@
+﻿@model List<EntityLayer.Concrete.VpnServer>
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Server Dashboard";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GlobalShield</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/dashboard.css" rel="stylesheet" />
+</head>
+<body>
+
+    <!-- Simple Modern Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <i class="fa-solid fa-shield-halved text-primary" style="font-size: 1.5rem;"></i>
+                <span class="fw-bold">GlobalShield</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="#"><i class="fa-solid fa-server me-2"></i>Servers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-gear me-2"></i>Settings</a></li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Connect" asp-action="Status"><i class="fa-solid fa-wifi me-2"></i>Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Account/Profile"><i class="fa-solid fa-user me-2"></i>Account</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-container">
+        <!-- Header Section -->
+        <div class="dashboard-header">
+            <div class="header-title">
+                <h2><i class="fa-solid fa-earth-americas text-primary me-2"></i> Select Location</h2>
+                <p>Choose a secure server node to route your connection.</p>
+            </div>
+            <div class="status-badge">
+                <div class="pulse-dot"></div>
+                Protected
+            </div>
+        </div>
+
+        <!-- Server List Grid -->
+        @if (!Model.Any())
+        {
+            <div class="alert alert-warning d-flex align-items-center gap-3" style="background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.2); color: #fbbf24;">
+                <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
+                <div>
+                    <strong>No Servers Available</strong>
+                    <br />
+                    There are currently no active VPN nodes. Please check back later.
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="server-grid">
+                @foreach (var vpn in Model)
+                {
+                    <div class="server-card">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="card-icon">
+                                <i class="fa-solid fa-flag-usa"></i> <!-- Placeholder icon, logic could be dynamic based on country -->
+                            </div>
+                            @if (vpn.IsActive)
+                            {
+                                <i class="fa-solid fa-circle status-online" title="Online"></i>
+                            }
+                            else
+                            {
+                                <i class="fa-solid fa-circle status-offline" title="Offline"></i>
+                            }
+                        </div>
+                        
+                        <div class="server-info">
+                            <h3>@vpn.Country</h3>
+                            <p>@vpn.Name</p>
+                        </div>
+
+                        <div class="server-stats">
+                            <div class="stat-item" title="Latency">
+                                <i class="fa-solid fa-bolt"></i>
+                                <span>@((new Random()).Next(20, 150)) ms</span> <!-- Fake data for visuals -->
+                            </div>
+                            <div class="stat-item" title="Load">
+                                <i class="fa-solid fa-users"></i>
+                                <span>@((new Random()).Next(10, 90))%</span> <!-- Fake data for visuals -->
+                            </div>
+                        </div>
+
+                        <a asp-controller="Connect" asp-action="Connect" asp-route-id="@vpn.Id" class="connect-btn">
+                            <i class="fa-solid fa-power-off"></i> Connect Now
+                        </a>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

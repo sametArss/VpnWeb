@@ -1,0 +1,134 @@
+﻿@model EntityLayer.Concrete.UserVpn
+
+@{
+    Layout = null;
+    ViewData["Title"] = "VPN Status";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GlobalShield</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="~/css/status.css" rel="stylesheet" />
+</head>
+<body>
+    <a asp-action="Index" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i>
+        Back to Servers
+    </a>
+
+    <div class="status-container">
+        <div class="status-card">
+            <div class="status-header">
+                <h1><i class="fa-solid fa-shield-halved" style="color: var(--primary);"></i> VPN Status</h1>
+                
+                @if (Model != null && Model.IsActive)
+                {
+                    <div class="status-badge active">
+                        <span class="status-icon"></span>
+                        Connected & Secure
+                    </div>
+                }
+                else
+                {
+                    <div class="status-badge inactive">
+                        <span class="status-icon"></span>
+                        Disconnected
+                    </div>
+                }
+            </div>
+
+            @if (Model != null && Model.IsActive)
+            {
+                <div class="info-section">
+                    <div class="info-row">
+                        <span class="info-label">
+                            <i class="fa-solid fa-network-wired"></i>
+                            Your IP Address
+                        </span>
+                        <span class="info-value">@Model.ClientIp</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">
+                            <i class="fa-solid fa-lock"></i>
+                            Connection Status
+                        </span>
+                        <span class="info-value">Encrypted</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">
+                            <i class="fa-solid fa-bolt"></i>
+                            Protocol
+                        </span>
+                        <span class="info-value">WireGuard</span>
+                    </div>
+                </div>
+
+                @if (ViewBag.QrCodeImage != null)
+                {
+                    <div class="qr-section">
+                        <h3><i class="fa-solid fa-mobile-screen-button"></i> Mobile Connection</h3>
+                        <p>Scan this QR code with the WireGuard app on your mobile device</p>
+                        <div class="qr-code-wrapper">
+                            <img src="@ViewBag.QrCodeImage" alt="WireGuard QR Code" />
+                        </div>
+                    </div>
+                }
+
+                <div class="action-buttons">
+                    <a asp-action="DownloadConfig" class="btn btn-primary">
+                        <i class="fa-solid fa-download"></i>
+                        Download Config
+                    </a>
+                    <form asp-action="Disconnect" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fa-solid fa-power-off"></i>
+                            Disconnect
+                        </button>
+                    </form>
+                </div>
+
+                <div class="config-section">
+                    <button class="collapse-btn" onclick="toggleConfig()">
+                        <i class="fa-solid fa-file-code"></i>
+                        <span id="toggleText">Show Configuration</span>
+                    </button>
+                    <div class="config-content" id="configContent">
+                        <div class="config-text">@Model.ClientConfig</div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="no-connection">
+                    <i class="fa-solid fa-plug-circle-xmark icon"></i>
+                    <h2>No Active Connection</h2>
+                    <p>You are not currently connected to any VPN server.</p>
+                    <a asp-action="Index" class="btn btn-success">
+                        <i class="fa-solid fa-server"></i>
+                        Browse Servers
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <script>
+        function toggleConfig() {
+            const content = document.getElementById('configContent');
+            const text = document.getElementById('toggleText');
+            content.classList.toggle('show');
+            
+            if (content.classList.contains('show')) {
+                text.textContent = 'Hide Configuration';
+            } else {
+                text.textContent = 'Show Configuration';
+            }
+        }
+    </script>
+</body>
+</html>

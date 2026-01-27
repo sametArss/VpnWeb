@@ -1,0 +1,45 @@
+﻿@model EntityLayer.Concrete.UserVpn
+
+@{
+    ViewData["Title"] = "VPN Durumu";
+}
+
+<h2>VPN Durumu</h2>
+
+@if (Model == null)
+{
+    <div style="color:red">
+        @ViewBag.Message
+    </div>
+}
+else
+{
+    <table border="1" cellpadding="10">
+        <tr>
+            <th>Server</th>
+            <td>@Model.VpnServer.Name (@Model.VpnServer.Country)</td>
+        </tr>
+        <tr>
+            <th>IP Adresi</th>
+            <td>@Model.ClientIp</td>
+        </tr>
+        <tr>
+            <th>Bağlanma Zamanı</th>
+            <td>@Model.ConnectedAt</td>
+        </tr>
+        <tr>
+            <th>Durum</th>
+            <td style="color:green">Aktif</td>
+        </tr>
+    </table>
+
+    <br />
+
+    <a href="/Connect/DownloadConfig" class="btn btn-primary">
+        Config İndir
+    </a>
+
+    <a href="/Connect/Disconnect" class="btn btn-danger">
+        VPN Kapat
+    </a>
+}

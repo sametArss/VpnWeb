@@ -1,0 +1,239 @@
+﻿@model EntityLayer.Concrete.User
+
+@{
+    Layout = null;
+    ViewData["Title"] = "Profilim";
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GlobalShield</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/dashboard.css" rel="stylesheet" />
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        /* Buton için hover efekti */
+        .btn-password:hover {
+            background-color: #ffc107;
+            color: #000 !important;
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 1000;">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <i class="fa-solid fa-shield-halved text-primary" style="font-size: 1.5rem;"></i>
+                <span class="fw-bold">GlobalShield</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Connect" asp-action="Index">
+                            <i class="fa-solid fa-server me-2"></i>Servers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Connect" asp-action="Status">
+                            <i class="fa-solid fa-wifi me-2"></i>Status
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" asp-controller="Account" asp-action="Profile">
+                            <i class="fa-solid fa-user me-2"></i>Account
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div>
+                        <h2 class="fw-bold text-white mb-1">Hesap Bilgileri</h2>
+                        <p class="text-white-50">Profil detaylarınızı buradan inceleyebilirsiniz.</p>
+                    </div>
+
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button class="btn btn-outline-danger px-4 rounded-pill transition-btn">
+                            <i class="fa-solid fa-right-from-bracket me-2"></i> Çıkış Yap
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card border-0 shadow-lg" style="background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="card-body p-5">
+
+                        <div class="row align-items-center">
+                            <div class="col-md-4 text-center border-end border-secondary border-opacity-25">
+
+                                <div class="d-inline-flex align-items-center justify-content-center mb-3 shadow"
+                                     style="width: 120px; height: 120px; background: linear-gradient(135deg, #6366f1, #a855f7); border-radius: 50%; font-size: 3rem; color: white; font-weight: bold;">
+                                    @if (!string.IsNullOrEmpty(Model.FullName))
+                                    {
+                                        @Model.FullName.Substring(0, 1).ToUpper()
+                                    }
+                                    else
+                                    {
+                                        <span>?</span>
+                                    }
+                                </div>
+
+                                <h3 class="text-white fw-bold mb-1">@Model.FullName</h3>
+                                <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill">
+                                    @Model.Role Hesabı
+                                </span>
+                            </div>
+
+                            <div class="col-md-8 ps-md-5 mt-4 mt-md-0">
+
+                                <div class="info-group mb-4">
+                                    <label class="text-white-50 small text-uppercase fw-bold mb-1">E-Posta Adresi</label>
+                                    <div class="d-flex align-items-center text-white fs-5">
+                                        <i class="fa-regular fa-envelope me-3 text-info"></i>
+                                        @Model.Email
+                                        @if (Model.IsEmailVerified)
+                                        {
+                                            <i class="fa-solid fa-circle-check text-success ms-3" title="Doğrulanmış Hesap"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fa-solid fa-circle-exclamation text-warning ms-3" title="Doğrulanmamış"></i>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="info-group mb-4">
+                                    <label class="text-white-50 small text-uppercase fw-bold mb-1">Hesap Durumu</label>
+                                    <div class="text-white fs-5">
+                                        @if (Model.IsActive)
+                                        {
+                                            <span class="d-flex align-items-center text-success">
+                                                <i class="fa-solid fa-signal me-3"></i> Aktif Kullanıcı
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="d-flex align-items-center text-danger">
+                                                <i class="fa-solid fa-ban me-3"></i> Pasif/Engelli
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="info-group">
+                                            <label class="text-white-50 small text-uppercase fw-bold mb-1">Katılma Tarihi</label>
+                                            <div class="text-white">
+                                                <i class="fa-regular fa-calendar me-2 text-primary"></i>
+                                                @Model.CreatedAt.ToString("dd MMM yyyy")
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-group">
+                                            <label class="text-white-50 small text-uppercase fw-bold mb-1">Son Giriş</label>
+                                            <div class="text-white">
+                                                <i class="fa-solid fa-clock-rotate-left me-2 text-warning"></i>
+                                                @(Model.LastLoginAt.HasValue? Model.LastLoginAt.Value.ToString("dd.MM.yyyy HH:mm") : "Henüz yok")
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 pt-3 border-top border-secondary border-opacity-25">
+                                    <button type="button" class="btn btn-outline-warning w-100 py-2 rounded-pill fw-bold btn-password" data-bs-toggle="modal" data-bs-target="#passwordModal">
+                                        <i class="fa-solid fa-key me-2"></i> Şifremi Değiştir
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+
+    <div class="modal fade" id="passwordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-white" style="background-color: #1e293b; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+
+                <div class="modal-header border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fa-solid fa-shield-halved text-warning me-2"></i> Şifre Güncelleme
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <form asp-controller="Account" asp-action="ChangePassword" method="post">
+                    <div class="modal-body">
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small fw-bold">Mevcut Şifre</label>
+                            <input type="password" name="OldPassword" class="form-control bg-dark text-white border-secondary" required placeholder="••••••">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small fw-bold">Yeni Şifre</label>
+                            <input type="password" name="NewPassword" class="form-control bg-dark text-white border-secondary" required placeholder="Yeni güvenli şifreniz">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 small fw-bold">Yeni Şifre (Tekrar)</label>
+                            <input type="password" name="ConfirmPassword" class="form-control bg-dark text-white border-secondary" required placeholder="Şifreyi onaylayın">
+                        </div>
+
+                    </div>
+                    <div class="modal-footer border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">İptal</button>
+                        <button type="submit" class="btn btn-warning rounded-pill fw-bold">
+                            <i class="fa-solid fa-check me-2"></i> Güncelle
+                        </button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success position-fixed top-0 end-0 m-3 shadow-lg" style="z-index: 1055;" role="alert">
+            <i class="fa-solid fa-circle-check me-2"></i> @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger position-fixed top-0 end-0 m-3 shadow-lg" style="z-index: 1055;" role="alert">
+            <i class="fa-solid fa-circle-exclamation me-2"></i> @TempData["Error"]
+        </div>
+    }
+
+</body>
+</html>
