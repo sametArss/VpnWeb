@@ -7,6 +7,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,10 +17,12 @@
     <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/dashboard.css" rel="stylesheet" />
 </head>
+
 <body>
 
     <!-- Simple Modern Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+    <nav class="navbar navbar-expand-lg navbar-dark"
+        style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="/">
                 <i class="fa-solid fa-shield-halved text-primary" style="font-size: 1.5rem;"></i>
@@ -30,10 +33,14 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="#"><i class="fa-solid fa-server me-2"></i>Servers</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-gear me-2"></i>Settings</a></li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Connect" asp-action="Status"><i class="fa-solid fa-wifi me-2"></i>Status</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/Account/Profile"><i class="fa-solid fa-user me-2"></i>Account</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="#"><i
+                                class="fa-solid fa-server me-2"></i>Servers</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-gear me-2"></i>Settings</a>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" asp-controller="Connect" asp-action="Status"><i
+                                class="fa-solid fa-wifi me-2"></i>Status</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/Account/Profile"><i
+                                class="fa-solid fa-user me-2"></i>Account</a></li>
                 </ul>
             </div>
         </div>
@@ -52,10 +59,37 @@
             </div>
         </div>
 
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success d-flex align-items-center gap-3"
+                style="background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.2); color: #4ade80; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-circle-check fa-lg"></i>
+                <div>
+                    <strong>Başarılı!</strong>
+                    <br />
+                    @TempData["Success"]
+                </div>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger d-flex align-items-center gap-3"
+                style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #f87171; margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
+                <div>
+                    <strong>Hata!</strong>
+                    <br />
+                    @TempData["Error"]
+                </div>
+            </div>
+        }
+
         <!-- Server List Grid -->
         @if (!Model.Any())
         {
-            <div class="alert alert-warning d-flex align-items-center gap-3" style="background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.2); color: #fbbf24;">
+            <div class="alert alert-warning d-flex align-items-center gap-3"
+                style="background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.2); color: #fbbf24;">
                 <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
                 <div>
                     <strong>No Servers Available</strong>
@@ -72,7 +106,8 @@
                     <div class="server-card">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="card-icon">
-                                <i class="fa-solid fa-flag-usa"></i> <!-- Placeholder icon, logic could be dynamic based on country -->
+                                <i class="fa-solid fa-flag-usa"></i>
+                                <!-- Placeholder icon, logic could be dynamic based on country -->
                             </div>
                             @if (vpn.IsActive)
                             {
@@ -83,7 +118,7 @@
                                 <i class="fa-solid fa-circle status-offline" title="Offline"></i>
                             }
                         </div>
-                        
+
                         <div class="server-info">
                             <h3>@vpn.Country</h3>
                             <p>@vpn.Name</p>
@@ -109,6 +144,38 @@
         }
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95); z-index: 9999;
+            justify-content: center; align-items: center; flex-direction: column; gap: 2rem;">
+        <div style="text-align: center;">
+            <i class="fa-solid fa-shield-halved"
+                style="font-size: 4rem; color: #3b82f6; margin-bottom: 1rem; animation: pulse 1.5s ease-in-out infinite;"></i>
+            <div class="spinner-border text-primary" role="status"
+                style="width: 60px; height: 60px; border-width: 4px;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p style="color: rgba(255, 255, 255, 0.6); margin-top: 1.5rem; font-size: 0.95rem;">Connecting to VPN...</p>
+        </div>
+    </div>
+    <link href="~/css/overloading.css" rel="stylesheet" />
+
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function () {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        });
+
+        document.querySelectorAll('a').forEach(link => {
+            if (!link.hasAttribute('href') || link.getAttribute('href').startsWith('#')) return;
+            link.addEventListener('click', function (e) {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        });
+    </script>
 </body>
+
 </html>

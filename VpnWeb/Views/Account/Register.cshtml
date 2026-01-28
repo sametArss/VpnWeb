@@ -6,6 +6,7 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,6 +15,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="~/css/login.css" rel="stylesheet" />
 </head>
+
 <body>
 
     <div class="map-bg"></div>
@@ -31,11 +33,30 @@
             <p class="subtitle">Create your anonymous identity</p>
         </div>
 
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success"
+                style="background: rgba(74, 222, 128, 0.1); border: 1px solid rgba(74, 222, 128, 0.2); color: #4ade80; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                <i class="fa-solid fa-check-circle" style="margin-right: 8px;"></i>
+                @TempData["Success"]
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger"
+                style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                <i class="fa-solid fa-circle-exclamation" style="margin-right: 8px;"></i>
+                @TempData["Error"]
+            </div>
+        }
+
         <form asp-action="Register" method="post">
             <div class="form-group">
                 <label>Full Name</label>
                 <div class="input-wrapper">
-                    <input asp-for="FullName" class="form-control" type="text" placeholder="John Doe" required autocomplete="name" />
+                    <input asp-for="FullName" class="form-control" type="text" placeholder="John Doe" required
+                        autocomplete="name" />
                     <i class="fa-solid fa-user"></i>
                 </div>
             </div>
@@ -43,7 +64,8 @@
             <div class="form-group">
                 <label>Email Address</label>
                 <div class="input-wrapper">
-                    <input asp-for="Email" class="form-control" type="email" placeholder="name@example.com" required autocomplete="email" />
+                    <input asp-for="Email" class="form-control" type="email" placeholder="name@example.com" required
+                        autocomplete="email" />
                     <i class="fa-solid fa-envelope"></i>
                 </div>
             </div>
@@ -51,7 +73,8 @@
             <div class="form-group">
                 <label>Password</label>
                 <div class="input-wrapper">
-                    <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" required autocomplete="new-password" />
+                    <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" required
+                        autocomplete="new-password" />
                     <i class="fa-solid fa-lock"></i>
                 </div>
             </div>
@@ -61,11 +84,44 @@
             </button>
 
             <div class="register-link">
-                Already have an account? 
+                Already have an account?
                 <a asp-action="Login">Sign In</a>
             </div>
         </form>
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.95); z-index: 9999;
+            justify-content: center; align-items: center; flex-direction: column; gap: 2rem;">
+        <div style="text-align: center;">
+            <i class="fa-solid fa-shield-halved"
+                style="font-size: 4rem; color: #3b82f6; margin-bottom: 1rem; animation: pulse 1.5s ease-in-out infinite;"></i>
+            <div class="spinner-border text-primary" role="status"
+                style="width: 60px; height: 60px; border-width: 4px;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p style="color: rgba(255, 255, 255, 0.6); margin-top: 1.5rem; font-size: 0.95rem;">Creating Account...</p>
+        </div>
+    </div>
+
+    <link href="~/css/overloading.css" rel="stylesheet" />
+
+    <script>
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function () {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        });
+
+        document.querySelectorAll('a').forEach(link => {
+            if (!link.hasAttribute('href') || link.getAttribute('href').startsWith('#')) return;
+            link.addEventListener('click', function (e) {
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        });
+    </script>
+
 </body>
+
 </html>

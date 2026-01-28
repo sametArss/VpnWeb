@@ -26,8 +26,17 @@ namespace VpnWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
-            await _userService.RegisterAsync(dto);
-            return RedirectToAction("Login");
+            try
+            {
+                await _userService.RegisterAsync(dto);
+                TempData["Success"] = "Hesabınız başarıyla oluşturuldu! Lütfen giriş yapınız.";
+                return RedirectToAction("Login");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction("Register");
+            }
         }
 
         [HttpGet]
@@ -36,9 +45,18 @@ namespace VpnWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> Login(LoginDto dto)
         {
-            var token = await _userService.LoginAsync(dto);
-            Response.Cookies.Append("access_token", token);
-            return RedirectToAction("Index", "Connect");
+            try
+            {
+                var token = await _userService.LoginAsync(dto);
+                Response.Cookies.Append("access_token", token);
+                TempData["Success"] = "Giriş başarılı! VPN sunucularına yönlendiriliyorsunuz...";
+                return RedirectToAction("Index", "Connect");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction("Login");
+            }
         }
 
 
@@ -121,8 +139,17 @@ namespace VpnWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            await _userService.ForgotPasswordAsync(email);
-            return Ok("Eğer e-posta kayıtlıysa şifre sıfırlama linki gönderildi.");
+            try
+            {
+                await _userService.ForgotPasswordAsync(email);
+                TempData["Success"] = "Eğer e-posta kayıtlıysa şifre sıfırlama linki gönderildi.";
+                return RedirectToAction("ForgotPassword");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction("ForgotPassword");
+            }
         }
 
         [HttpGet]
@@ -141,11 +168,20 @@ namespace VpnWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
         {
-            await _userService.ResetPasswordAsync(dto);
-            return Ok("Şifreniz başarıyla güncellendi.");
+            try
+            {
+                await _userService.ResetPasswordAsync(dto);
+                TempData["Success"] = "Şifreniz başarıyla güncellendi! Artık yeni şifrenizle giriş yapabilirsiniz.";
+                return RedirectToAction("Login");
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = ex.Message;
+                return RedirectToAction("ResetPassword", new { token = dto.Token });
+            }
         }
 
 
     }
 
-} 
+}
