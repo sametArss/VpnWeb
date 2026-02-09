@@ -18,5 +18,6 @@ namespace EntityLayer.Concrete
 
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string SshPassword { get; set; } 
     }
 }
