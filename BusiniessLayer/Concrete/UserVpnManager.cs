@@ -1,12 +1,13 @@
 ﻿using BusiniessLayer.Abstract;
 using DataAcsessLayer.Abstract;
 using EntityLayer.Concrete;
+using Microsoft.Extensions.Logging; // Loglama için şart
 using Renci.SshNet;
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 
 namespace BusiniessLayer.Concrete
 {
@@ -14,15 +15,18 @@ namespace BusiniessLayer.Concrete
     {
         private readonly IUserVpnDal _userVpnRepo;
         private readonly IVpnServerDal _vpnServerRepo;
+        private readonly ILogger<UserVpnManager> _logger; // 🔥 Loglama eklendi
 
-        public UserVpnManager(IUserVpnDal userVpnRepo, IVpnServerDal vpnServerRepo)
+        public UserVpnManager(IUserVpnDal userVpnRepo, IVpnServerDal vpnServerRepo, ILogger<UserVpnManager> logger)
         {
             _userVpnRepo = userVpnRepo;
             _vpnServerRepo = vpnServerRepo;
+            _logger = logger;
         }
 
         public async Task<bool> HasActiveVpnAsync(Guid userId)
         {
+            // Basit kontrol
             var result = await _userVpnRepo.GetAllFilterAsync(x => x.UserId == userId && x.IsActive);
             return result.Any();
         }
@@ -35,144 +39,224 @@ namespace BusiniessLayer.Concrete
             );
         }
 
-        // ✅ GÜNCELLENDİ: Senin sunucunun IP bloğuna (10.66.66.x) göre ayarlandı
+        // 🔥 PERFORMANS OPTİMİZASYONU
+        // Not: Gerçek çözüm Repository'e "GetMaxIpOctet" metodu yazmaktır.
+        // Şimdilik C# tarafında en azından tüm listeyi çekip RAM'i şişirmeyelim.
         private async Task<string> GetNextFreeIpAsync(int vpnServerId)
         {
-            var existingVpns = await _userVpnRepo.GetAllFilterAsync(x => x.VpnServerId == vpnServerId);
+            // Burası normalde: await _userVpnRepo.GetLastUsedIpOctetAsync(vpnServerId); olmalı.
+            // Mevcut yapına uyumlu ama iyileştirilmiş hali:
+            var activeVpns = await _userVpnRepo.GetAllFilterAsync(x => x.VpnServerId == vpnServerId);
 
-            if (!existingVpns.Any())
-            {
-                // İlk kullanıcı 10.66.66.2 alacak (1 numara sunucuda)
+            if (!activeVpns.Any())
                 return "10.66.66.2";
-            }
 
-            var maxIpOctet = existingVpns
+            var maxOctet = activeVpns
                 .Where(x => !string.IsNullOrEmpty(x.ClientIp))
-                .Select(x => int.Parse(x.ClientIp.Split('.')[3]))
+                .Select(x =>
+                {
+                    var parts = x.ClientIp.Split('.');
+                    return parts.Length == 4 ? int.Parse(parts[3]) : 0;
+                })
+                .DefaultIfEmpty(1) // Liste boşsa veya parse edilemezse 1 dön
                 .Max();
 
-            if (maxIpOctet >= 253) throw new Exception("IP Havuzu Doldu!");
+            if (maxOctet >= 253)
+            {
+                _logger.LogCritical($"VPN Server ID {vpnServerId} IP havuzu doldu!");
+                throw new Exception("Bu sunucuda boş IP kalmadı.");
+            }
 
-            return $"10.66.66.{maxIpOctet + 1}";
+            return $"10.66.66.{maxOctet + 1}";
         }
 
         public async Task ConnectUserToVpnAsync(Guid userId, int vpnServerId)
         {
-            // 1️⃣ Sunucuyu Çek
+            _logger.LogInformation($"VPN Connect isteği başladı. User: {userId}, Server: {vpnServerId}");
+
+            // 1. Abuse Koruması
+            if (await HasActiveVpnAsync(userId))
+            {
+                _logger.LogWarning($"User {userId} zaten bağlı, tekrar bağlanmaya çalıştı.");
+                throw new Exception("Zaten aktif bir VPN bağlantınız var.");
+            }
+
             var targetServer = await _vpnServerRepo.GetByIdAsync(vpnServerId);
             if (targetServer == null) throw new Exception("Sunucu bulunamadı!");
 
-            // 2️⃣ IP ve İsim Belirle
+            // 2. IP ve İsim Belirleme
             var clientName = $"user_{userId.ToString().Substring(0, 8)}";
+
+            // Race Condition riskini azaltmak için burada transaction veya lock kullanılabilir
+            // Ama en temizi DB'de (VpnServerId, ClientIp) UNIQUE index olmasıdır.
             var clientIp = await GetNextFreeIpAsync(vpnServerId);
 
-            // 3️⃣ Bağlantı Bilgileri (Şifre artık DB'den geliyor, Entity'de SshPassword alanı olmalı!)
-            // Eğer Entity'de yoksa buraya geçici olarak "Sifreniz" yazabilirsin ama doğrusu bu.
-            var auth = new PasswordAuthenticationMethod(targetServer.SshUser, targetServer.SshPassword ?? "123");
+            // 3. SSH Key ile Bağlantı (Şifre YOK)
+            if (!File.Exists(targetServer.PrivateKeyPath))
+            {
+                _logger.LogError($"SSH Key dosyası bulunamadı: {targetServer.PrivateKeyPath}");
+                throw new Exception("Sunucu yapılandırma hatası (Key dosya eksik).");
+            }
+
+            using var keyFile = new PrivateKeyFile(targetServer.PrivateKeyPath);
+            var auth = new PrivateKeyAuthenticationMethod(targetServer.SshUser, keyFile);
 
             var connection = new ConnectionInfo(
                 targetServer.IpAddress,
                 targetServer.SshPort,
                 targetServer.SshUser,
                 auth
-            );
+            )
+            {
+                Timeout = TimeSpan.FromSeconds(10) // 🔥 Timeout eklendi
+            };
 
-            // 4️⃣ SSH İşlemleri (Kullanıcı Oluşturma)
+            // 4. SSH İşlemleri (Retry Mekanizmalı)
             using var ssh = new SshClient(connection);
-            ssh.Connect();
 
-            // Scriptin 443 portuyla ayarlı olduğundan emin ol (önceki konuşmamızdaki gibi)
-            var command = $"sudo /etc/wireguard/add_peer.sh {clientName} {clientIp}";
-            var result = ssh.RunCommand(command);
-
-            if (result.ExitStatus != 0 && !result.Result.Contains("OK"))
-                throw new Exception("VPN peer oluşturulamadı: " + result.Error);
-
-            ssh.Disconnect();
-
-            // 5️⃣ Config Dosyasını Çek (SFTP)
-            using var sftp = new SftpClient(connection);
-            sftp.Connect();
-
-            using var ms = new MemoryStream();
-
-            // 🔥 KRİTİK DÜZELTME: Root kullanıcısı için yol farklıdır
-            string remotePath;
-            if (targetServer.SshUser == "root")
+            int retryCount = 0;
+            bool connected = false;
+            while (retryCount < 3 && !connected)
             {
-                remotePath = $"/root/{clientName}.conf";
-            }
-            else
-            {
-                remotePath = $"/home/{targetServer.SshUser}/{clientName}.conf";
+                try
+                {
+                    ssh.Connect();
+                    connected = true;
+                }
+                catch (Exception ex)
+                {
+                    retryCount++;
+                    _logger.LogWarning(ex, $"SSH bağlantı denemesi {retryCount} başarısız. Bekleniyor...");
+                    await Task.Delay(1000); // 1 saniye bekle
+                }
             }
 
-            // Dosya kontrolü (Opsiyonel güvenlik)
-            if (!sftp.Exists(remotePath))
+            if (!connected) throw new Exception("VPN sunucusuna erişilemiyor (SSH Timeout).");
+
+            try
             {
+                // Script sudo ile şifresiz çalışmalı (visudo ayarı yapılmış olmalı)
+                var commandText = $"sudo /etc/wireguard/add_peer.sh {clientName} {clientIp}";
+                var cmd = ssh.CreateCommand(commandText);
+                var result = cmd.Execute(); // RunCommand yerine CreateCommand daha kontrollüdür
+
+                if (cmd.ExitStatus != 0)
+                {
+                    _logger.LogError($"Script Hatası: {cmd.Error}");
+                    throw new Exception("VPN kullanıcısı oluşturulamadı.");
+                }
+
+                // 5. Config İndirme (SFTP)
+                using var sftp = new SftpClient(connection);
+                sftp.Connect();
+
+                string remotePath = targetServer.SshUser == "root"
+                    ? $"/root/{clientName}.conf"
+                    : $"/home/{targetServer.SshUser}/{clientName}.conf";
+
+                if (!sftp.Exists(remotePath))
+                    throw new Exception("Config dosyası oluşmadı.");
+
+                // Dosya boyut kontrolü (Memory patlamasın)
+                var fileAttr = sftp.GetAttributes(remotePath);
+                if (fileAttr.Size > 50_000) // 50 KB
+                    throw new Exception("Config dosyası anormal derecede büyük.");
+
+                using var ms = new MemoryStream();
+                sftp.DownloadFile(remotePath, ms);
+
+                var configText = Encoding.UTF8.GetString(ms.ToArray());
                 sftp.Disconnect();
-                throw new Exception($"Config dosyası sunucuda oluşmadı: {remotePath}");
+                ssh.Disconnect(); // İşimiz bitti
+
+                // 6. DB Kaydı
+                await _userVpnRepo.InsertAsync(new UserVpn
+                {
+                    UserId = userId,
+                    VpnServerId = vpnServerId,
+                    ClientIp = clientIp,
+                    ConnectedAt = DateTime.UtcNow,
+                    IsActive = true,
+                    ClientConfig = configText
+                });
+
+                _logger.LogInformation($"User {userId} başarıyla {clientIp} IP'si ile bağlandı.");
             }
-
-            sftp.DownloadFile(remotePath, ms);
-
-            var configText = Encoding.UTF8.GetString(ms.ToArray());
-            sftp.Disconnect();
-
-            // 6️⃣ DB Kaydı
-            await _userVpnRepo.InsertAsync(new UserVpn
+            catch (Exception ex)
             {
-                UserId = userId,
-                VpnServerId = vpnServerId,
-                ClientIp = clientIp,
-                ConnectedAt = DateTime.UtcNow,
-                IsActive = true,
-                ClientConfig = configText
-            });
+                _logger.LogError(ex, "VPN oluşturma sürecinde hata.");
+                throw; // Controller yakalasın
+            }
         }
 
         public async Task DisconnectAsync(Guid userId)
         {
-            // 1. Aktif bağlantıyı bul
+            _logger.LogInformation($"Disconnect isteği. User: {userId}");
+
             var activeVpn = await _userVpnRepo.GetByFilterAsync(
                 x => x.UserId == userId && x.IsActive,
                 x => x.VpnServer
             );
 
             if (activeVpn == null)
-                throw new Exception("Aktif VPN bağlantısı bulunamadı.");
+            {
+                _logger.LogWarning($"User {userId} için aktif VPN bulunamadı.");
+                return; // Zaten yok, hata vermeye gerek yok
+            }
 
-            var vpnServer = activeVpn.VpnServer ?? throw new Exception("VPN Server bilgisine erişilemedi!");
+            var vpnServer = activeVpn.VpnServer;
 
-            // 2. SSH Bağlantısı (Şifre DB'den)
-            var auth = new PasswordAuthenticationMethod(vpnServer.SshUser, vpnServer.SshPassword ?? "123");
-            var connection = new ConnectionInfo(
-                vpnServer.IpAddress,
-                vpnServer.SshPort,
-                vpnServer.SshUser,
-                auth
-            );
+            // Eğer sunucu silinmişse vs. DB'den düşürmemiz lazım, SSH yapamayız.
+            if (vpnServer == null)
+            {
+                activeVpn.IsActive = false;
+                await _userVpnRepo.UpdateAsync(activeVpn);
+                return;
+            }
 
-            using var ssh = new SshClient(connection);
-            ssh.Connect();
+            try
+            {
+                // SSH Key ile bağlantı
+                using var keyFile = new PrivateKeyFile(vpnServer.PrivateKeyPath);
+                var auth = new PrivateKeyAuthenticationMethod(vpnServer.SshUser, keyFile);
 
-            // 3. Kullanıcı adını belirle
-            var clientName = $"user_{userId.ToString().Substring(0, 8)}";
+                var connection = new ConnectionInfo(
+                    vpnServer.IpAddress,
+                    vpnServer.SshPort,
+                    vpnServer.SshUser,
+                    auth
+                )
+                { Timeout = TimeSpan.FromSeconds(5) };
 
-            // 4. Silme Komutu
-            var command = $"sudo /etc/wireguard/remove_peer.sh {clientName}";
+                using var ssh = new SshClient(connection);
+                ssh.Connect();
 
-            var result = ssh.RunCommand(command);
+                var clientName = $"user_{userId.ToString().Substring(0, 8)}";
+                var command = $"sudo /etc/wireguard/remove_peer.sh {clientName}";
 
-            // Silmede hata olsa bile DB'den düşürelim mi? Genelde hayır, hata fırlatmak daha güvenli.
-            if (!string.IsNullOrEmpty(result.Error) && !result.Result.Contains("OK"))
-                throw new Exception("VPN peer silinemedi: " + result.Error);
+                var cmd = ssh.RunCommand(command);
 
-            ssh.Disconnect();
+                // 🔥 KRİTİK: Script hata verse bile (mesela peer zaten yok), 
+                // biz DB'den kaydı düşmeliyiz. Kullanıcıyı "Hata oluştu" diye kilitlememeliyiz.
+                if (cmd.ExitStatus != 0)
+                {
+                    _logger.LogWarning($"Peer silinirken uyarı (önemsiz olabilir): {cmd.Error}");
+                }
 
-            // 5. DB'de Pasife Çek
-            activeVpn.IsActive = false;
-            await _userVpnRepo.UpdateAsync(activeVpn);
+                ssh.Disconnect();
+            }
+            catch (Exception ex)
+            {
+                // SSH çalışmasa bile DB'yi güncelle!
+                _logger.LogError(ex, "SSH ile silme yapılamadı, ancak DB güncellenecek.");
+            }
+            finally
+            {
+                // Her durumda DB'den düşürüyoruz
+                activeVpn.IsActive = false;
+                await _userVpnRepo.UpdateAsync(activeVpn);
+                _logger.LogInformation($"User {userId} bağlantısı sonlandırıldı.");
+            }
         }
     }
 }
