@@ -305,7 +305,7 @@ node_modules/
 **/*.Server/ModelManifest.xml
 _Pvt_Extensions
 
-
+vpn_server_key.pem
 
 
 # AppSettings files

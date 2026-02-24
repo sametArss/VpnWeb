@@ -22,5 +22,7 @@ namespace EntityLayer.Concrete
         public string ClientConfig { get; set; }
 
         public bool IsActive { get; set; }
+
+        public VpnProtocol Protocol { get; set; }
     }
 }
