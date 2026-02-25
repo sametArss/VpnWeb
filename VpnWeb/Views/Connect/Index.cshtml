@@ -1,6 +1,5 @@
 ﻿@model List<EntityLayer.Concrete.VpnServer>
-
-@{
+@using EntityLayer.Concrete @{
     Layout = null;
     ViewData["Title"] = "Server Dashboard";
 }
@@ -16,13 +15,54 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/dashboard.css" rel="stylesheet" />
+    <style>
+        /* İki butonun yan yana güzel durması için ufak bir flex ayarı */
+        .connect-btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+            .connect-btn-group .btn {
+                flex: 1;
+                font-size: 0.85rem;
+                padding: 8px 12px;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                transition: all 0.3s ease;
+            }
+        /* İsteğe bağlı renk ayarlamaları */
+        .btn-wg {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+        }
+
+            .btn-wg:hover {
+                background-color: #2563eb;
+                color: white;
+            }
+
+        .btn-ovpn {
+            background-color: #f59e0b;
+            color: white;
+            border: none;
+        }
+
+            .btn-ovpn:hover {
+                background-color: #d97706;
+                color: white;
+            }
+    </style>
 </head>
 
 <body>
 
-    <!-- Simple Modern Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark"
-        style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
+         style="background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center gap-2" href="/">
                 <i class="fa-solid fa-shield-halved text-primary" style="font-size: 1.5rem;"></i>
@@ -33,25 +73,34 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="#"><i
-                                class="fa-solid fa-server me-2"></i>Servers</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#"><i class="fa-solid fa-gear me-2"></i>Settings</a>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">
+                            <i class="fa-solid fa-server me-2"></i>Servers
+                        </a>
                     </li>
-                    <li class="nav-item"><a class="nav-link" asp-controller="Connect" asp-action="Status"><i
-                                class="fa-solid fa-wifi me-2"></i>Status</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/Account/Profile"><i
-                                class="fa-solid fa-user me-2"></i>Account</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fa-solid fa-gear me-2"></i>Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Connect" asp-action="Status">
+                            <i class="fa-solid fa-wifi me-2"></i>Status
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Account/Profile">
+                            <i class="fa-solid fa-user me-2"></i>Account
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
     <div class="container dashboard-container">
-        <!-- Header Section -->
         <div class="dashboard-header">
             <div class="header-title">
                 <h2><i class="fa-solid fa-earth-americas text-primary me-2"></i> Select Location</h2>
-                <p>Choose a secure server node to route your connection.</p>
+                <p>Choose a secure server node and your preferred protocol.</p>
             </div>
             <div class="status-badge">
                 <div class="pulse-dot"></div>
@@ -62,7 +111,7 @@
         @if (TempData["Success"] != null)
         {
             <div class="alert alert-success d-flex align-items-center gap-3"
-                style="background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.2); color: #4ade80; margin-bottom: 1.5rem;">
+                 style="background: rgba(74, 222, 128, 0.1); border-color: rgba(74, 222, 128, 0.2); color: #4ade80; margin-bottom: 1.5rem;">
                 <i class="fa-solid fa-circle-check fa-lg"></i>
                 <div>
                     <strong>Başarılı!</strong>
@@ -75,7 +124,7 @@
         @if (TempData["Error"] != null)
         {
             <div class="alert alert-danger d-flex align-items-center gap-3"
-                style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #f87171; margin-bottom: 1.5rem;">
+                 style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #f87171; margin-bottom: 1.5rem;">
                 <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
                 <div>
                     <strong>Hata!</strong>
@@ -85,11 +134,10 @@
             </div>
         }
 
-        <!-- Server List Grid -->
         @if (!Model.Any())
         {
             <div class="alert alert-warning d-flex align-items-center gap-3"
-                style="background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.2); color: #fbbf24;">
+                 style="background: rgba(234, 179, 8, 0.1); border-color: rgba(234, 179, 8, 0.2); color: #fbbf24;">
                 <i class="fa-solid fa-triangle-exclamation fa-lg"></i>
                 <div>
                     <strong>No Servers Available</strong>
@@ -107,15 +155,14 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="card-icon">
                                 <i class="fa-solid fa-flag-usa"></i>
-                                <!-- Placeholder icon, logic could be dynamic based on country -->
                             </div>
                             @if (vpn.IsActive)
                             {
-                                <i class="fa-solid fa-circle status-online" title="Online"></i>
+                                <i class="fa-solid fa-circle status-online" title="Online" style="color: #4ade80;"></i>
                             }
                             else
                             {
-                                <i class="fa-solid fa-circle status-offline" title="Offline"></i>
+                                <i class="fa-solid fa-circle status-offline" title="Offline" style="color: #ef4444;"></i>
                             }
                         </div>
 
@@ -127,32 +174,36 @@
                         <div class="server-stats">
                             <div class="stat-item" title="Latency">
                                 <i class="fa-solid fa-bolt"></i>
-                                <span>@((new Random()).Next(20, 150)) ms</span> <!-- Fake data for visuals -->
+                                <span>@((new Random()).Next(20, 150)) ms</span>
                             </div>
                             <div class="stat-item" title="Load">
                                 <i class="fa-solid fa-users"></i>
-                                <span>@((new Random()).Next(10, 90))%</span> <!-- Fake data for visuals -->
+                                <span>@((new Random()).Next(10, 90))%</span>
                             </div>
                         </div>
 
-                        <a asp-controller="Connect" asp-action="Connect" asp-route-id="@vpn.Id" class="connect-btn">
-                            <i class="fa-solid fa-power-off"></i> Connect Now
-                        </a>
+                        <div class="connect-btn-group">
+                            <a asp-controller="Connect" asp-action="Connect" asp-route-id="@vpn.Id" asp-route-protocol="@VpnProtocol.WireGuard" class="btn btn-wg">
+                                <i class="fa-solid fa-network-wired"></i> WireGuard
+                            </a>
+                            <a asp-controller="Connect" asp-action="Connect" asp-route-id="@vpn.Id" asp-route-protocol="@VpnProtocol.OpenVPN" class="btn btn-ovpn">
+                                <i class="fa-solid fa-globe"></i> OpenVPN
+                            </a>
+                        </div>
                     </div>
                 }
             </div>
         }
     </div>
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.95); z-index: 9999;
             justify-content: center; align-items: center; flex-direction: column; gap: 2rem;">
         <div style="text-align: center;">
             <i class="fa-solid fa-shield-halved"
-                style="font-size: 4rem; color: #3b82f6; margin-bottom: 1rem; animation: pulse 1.5s ease-in-out infinite;"></i>
+               style="font-size: 4rem; color: #3b82f6; margin-bottom: 1rem; animation: pulse 1.5s ease-in-out infinite;"></i>
             <div class="spinner-border text-primary" role="status"
-                style="width: 60px; height: 60px; border-width: 4px;">
+                 style="width: 60px; height: 60px; border-width: 4px;">
                 <span class="visually-hidden">Loading...</span>
             </div>
             <p style="color: rgba(255, 255, 255, 0.6); margin-top: 1.5rem; font-size: 0.95rem;">Connecting to VPN...</p>
@@ -169,7 +220,7 @@
             });
         });
 
-        document.querySelectorAll('a').forEach(link => {
+        document.querySelectorAll('a.btn-wg, a.btn-ovpn').forEach(link => {
             if (!link.hasAttribute('href') || link.getAttribute('href').startsWith('#')) return;
             link.addEventListener('click', function (e) {
                 document.getElementById('loadingOverlay').style.display = 'flex';

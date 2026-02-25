@@ -7,10 +7,10 @@ namespace BusiniessLayer.Abstract
     public interface IUserVpnService
     {
         // bool -> Task<bool> oldu
-        Task<bool> HasActiveVpnAsync(Guid userId); 
+        Task<bool> HasActiveVpnAsync(Guid userId);
 
         // void -> Task oldu
-        Task ConnectUserToVpnAsync(Guid userId, int vpnServerId); 
+        Task ConnectUserToVpnAsync(Guid userId, int vpnServerId, VpnProtocol protocol);
 
         // UserVpn -> Task<UserVpn> oldu
         Task<UserVpn> GetActiveVpnAsync(Guid userId); 

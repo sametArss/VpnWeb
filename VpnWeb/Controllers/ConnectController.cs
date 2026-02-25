@@ -1,9 +1,10 @@
 ﻿using BusiniessLayer.Abstract;
+using EntityLayer.Concrete; // 🔥 GÜNCELLEME: VpnProtocol'ü tanıması için eklendi
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QRCoder;
 using System;
-using System.Threading.Tasks; // Task kullanımı için şart
+using System.Threading.Tasks;
 
 namespace VpnWeb.Controllers
 {
@@ -21,34 +22,28 @@ namespace VpnWeb.Controllers
             _userVpnService = userVpnService;
         }
 
-        // Kanka sürekli aynı kodu yazmamak için bu property'i ekledim.
-        // Artık 'CurrentUserId' diyerek ID'yi alabilirsin.
         private Guid CurrentUserId => Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
 
-        // ⚠️ Metot imzasını 'async Task<IActionResult>' olarak değiştirmeyi unutma!
         public async Task<IActionResult> Index()
         {
-            // 1. Önce kullanıcının aktif bir VPN'i var mı diye soruyoruz.
-            // Manager'da yazdığın HasActiveVpnAsync metodunu kullanıyoruz.
             bool hasActive = await _userVpnService.HasActiveVpnAsync(CurrentUserId);
 
-            // 2. Eğer aktif bağlantı varsa, listeyi gösterme direkt Status'a postala.
             if (hasActive)
             {
                 return RedirectToAction("Status");
             }
 
-            // 3. Eğer yoksa normal akışa devam et, sunucuları listele.
-            var vpns = _vpnService.GetActiveServers(); // Burası sync kalabilir veya async ise await eklersin.
+            var vpns = _vpnService.GetActiveServers();
             return View(vpns);
         }
 
-        public async Task<IActionResult> Connect(int id)
+        // 🔥 GÜNCELLEME: VpnProtocol parametresi eklendi
+        public async Task<IActionResult> Connect(int id, VpnProtocol protocol)
         {
             try
             {
-                // await kullanımı DOĞRU ✅
-                await _userVpnService.ConnectUserToVpnAsync(CurrentUserId, id);
+                // Protokolü manager'a gönderiyoruz
+                await _userVpnService.ConnectUserToVpnAsync(CurrentUserId, id, protocol);
                 return RedirectToAction("Status");
             }
             catch (Exception ex)
@@ -58,12 +53,9 @@ namespace VpnWeb.Controllers
             }
         }
 
-        // ⚠️ DÜZELTME 1: Metot async Task oldu
         public async Task<IActionResult> Status()
         {
             var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
-
-            // 1. Veriyi çek
             var activeVpn = await _userVpnService.GetActiveVpnAsync(userId);
 
             if (activeVpn == null)
@@ -72,26 +64,24 @@ namespace VpnWeb.Controllers
                 return View(null);
             }
 
-            // 2. ⭐ QR KOD OLUŞTURMA BÖLÜMÜ ⭐
-            // Eğer config string'i boş değilse QR üret
-            if (!string.IsNullOrEmpty(activeVpn.ClientConfig))
+            // 🔥 GÜNCELLEME: Sadece WireGuard için QR kod üret, OpenVPN'i atla
+            if (!string.IsNullOrEmpty(activeVpn.ClientConfig) && activeVpn.Protocol == VpnProtocol.WireGuard)
             {
-                using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+                try
                 {
-                    // Config text'ini QR verisine çevir
-                    QRCodeData qrCodeData = qrGenerator.CreateQrCode(activeVpn.ClientConfig, QRCodeGenerator.ECCLevel.Q);
-
-                    // Linux uyumlu PNG oluşturucu (System.Drawing kullanmaz, her yerde çalışır)
-                    PngByteQRCode qrCode = new PngByteQRCode(qrCodeData);
-
-                    // Resmi byte dizisine çevir (20 piksel boyut çarpanı)
-                    byte[] qrCodeAsPngByteArr = qrCode.GetGraphic(20);
-
-                    // HTML'de göstermek için Base64 formatına çevir
-                    string base64String = Convert.ToBase64String(qrCodeAsPngByteArr);
-
-                    // View'a taşı
-                    ViewBag.QrCodeImage = "data:image/png;base64," + base64String;
+                    using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+                    {
+                        QRCodeData qrCodeData = qrGenerator.CreateQrCode(activeVpn.ClientConfig, QRCodeGenerator.ECCLevel.Q);
+                        PngByteQRCode qrCode = new PngByteQRCode(qrCodeData);
+                        byte[] qrCodeAsPngByteArr = qrCode.GetGraphic(20);
+                        string base64String = Convert.ToBase64String(qrCodeAsPngByteArr);
+                        ViewBag.QrCodeImage = "data:image/png;base64," + base64String;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Olası bir boyut aşımında sayfa çökmesin diye log veya viewbag atıyoruz
+                    ViewBag.QrCodeError = "QR kod oluşturulamadı (Veri çok büyük).";
                 }
             }
 
@@ -103,7 +93,6 @@ namespace VpnWeb.Controllers
         {
             try
             {
-                // await kullanımı DOĞRU ✅
                 await _userVpnService.DisconnectAsync(CurrentUserId);
                 TempData["Success"] = "VPN bağlantısı kapatıldı";
             }
@@ -116,13 +105,10 @@ namespace VpnWeb.Controllers
         }
 
         [Authorize]
-        // ⚠️ DÜZELTME 3: Metot async Task oldu
         public async Task<IActionResult> DownloadConfig()
         {
-            // ⚠️ DÜZELTME 4: await eklendi.
             var vpn = await _userVpnService.GetActiveVpnAsync(CurrentUserId);
 
-            // Eğer await koymasaydın, vpn.ClientConfig kısmında hata alırdın.
             if (vpn == null || string.IsNullOrEmpty(vpn.ClientConfig))
             {
                 TempData["Error"] = "İndirilecek aktif VPN config bulunamadı";
@@ -130,7 +116,12 @@ namespace VpnWeb.Controllers
             }
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(vpn.ClientConfig);
-            var fileName = $"wg-{CurrentUserId.ToString().Substring(0, 6)}.conf";
+
+            // 🔥 GÜNCELLEME: Dosya uzantısını ve adını protokole göre belirliyoruz
+            string extension = vpn.Protocol == VpnProtocol.OpenVPN ? ".ovpn" : ".conf";
+            string prefix = vpn.Protocol == VpnProtocol.OpenVPN ? "ovpn" : "wg";
+
+            var fileName = $"{prefix}-{CurrentUserId.ToString().Substring(0, 6)}{extension}";
 
             return File(
                 bytes,

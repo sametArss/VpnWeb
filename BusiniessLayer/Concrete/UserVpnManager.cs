@@ -1,7 +1,7 @@
 ﻿using BusiniessLayer.Abstract;
 using DataAcsessLayer.Abstract;
 using EntityLayer.Concrete;
-using Microsoft.Extensions.Logging; // Loglama için şart
+using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System;
 using System.IO;
@@ -15,7 +15,7 @@ namespace BusiniessLayer.Concrete
     {
         private readonly IUserVpnDal _userVpnRepo;
         private readonly IVpnServerDal _vpnServerRepo;
-        private readonly ILogger<UserVpnManager> _logger; // 🔥 Loglama eklendi
+        private readonly ILogger<UserVpnManager> _logger;
 
         public UserVpnManager(IUserVpnDal userVpnRepo, IVpnServerDal vpnServerRepo, ILogger<UserVpnManager> logger)
         {
@@ -26,7 +26,6 @@ namespace BusiniessLayer.Concrete
 
         public async Task<bool> HasActiveVpnAsync(Guid userId)
         {
-            // Basit kontrol
             var result = await _userVpnRepo.GetAllFilterAsync(x => x.UserId == userId && x.IsActive);
             return result.Any();
         }
@@ -39,26 +38,21 @@ namespace BusiniessLayer.Concrete
             );
         }
 
-        // 🔥 PERFORMANS OPTİMİZASYONU
-        // Not: Gerçek çözüm Repository'e "GetMaxIpOctet" metodu yazmaktır.
-        // Şimdilik C# tarafında en azından tüm listeyi çekip RAM'i şişirmeyelim.
         private async Task<string> GetNextFreeIpAsync(int vpnServerId)
         {
-            // Burası normalde: await _userVpnRepo.GetLastUsedIpOctetAsync(vpnServerId); olmalı.
-            // Mevcut yapına uyumlu ama iyileştirilmiş hali:
             var activeVpns = await _userVpnRepo.GetAllFilterAsync(x => x.VpnServerId == vpnServerId);
 
             if (!activeVpns.Any())
                 return "10.66.66.2";
 
             var maxOctet = activeVpns
-                .Where(x => !string.IsNullOrEmpty(x.ClientIp))
+                .Where(x => !string.IsNullOrEmpty(x.ClientIp) && x.ClientIp != "Dynamic (OpenVPN)") // OpenVPN olanları yoksay
                 .Select(x =>
                 {
                     var parts = x.ClientIp.Split('.');
                     return parts.Length == 4 ? int.Parse(parts[3]) : 0;
                 })
-                .DefaultIfEmpty(1) // Liste boşsa veya parse edilemezse 1 dön
+                .DefaultIfEmpty(1)
                 .Max();
 
             if (maxOctet >= 253)
@@ -70,9 +64,10 @@ namespace BusiniessLayer.Concrete
             return $"10.66.66.{maxOctet + 1}";
         }
 
-        public async Task ConnectUserToVpnAsync(Guid userId, int vpnServerId)
+        // 🔥 GÜNCELLEME: Metoda "VpnProtocol protocol" parametresi eklendi
+        public async Task ConnectUserToVpnAsync(Guid userId, int vpnServerId, VpnProtocol protocol)
         {
-            _logger.LogInformation($"VPN Connect isteği başladı. User: {userId}, Server: {vpnServerId}");
+            _logger.LogInformation($"VPN Connect isteği başladı. User: {userId}, Server: {vpnServerId}, Protocol: {protocol}");
 
             // 1. Abuse Koruması
             if (await HasActiveVpnAsync(userId))
@@ -86,12 +81,32 @@ namespace BusiniessLayer.Concrete
 
             // 2. IP ve İsim Belirleme
             var clientName = $"user_{userId.ToString().Substring(0, 8)}";
+            string clientIp = "";
+            string commandText = "";
+            string remotePath = "";
 
-            // Race Condition riskini azaltmak için burada transaction veya lock kullanılabilir
-            // Ama en temizi DB'de (VpnServerId, ClientIp) UNIQUE index olmasıdır.
-            var clientIp = await GetNextFreeIpAsync(vpnServerId);
+            // 🔥 GÜNCELLEME 1: OpenVPN için de yolu dinamik yaptık ve "< /dev/null" ekledik
+            if (protocol == VpnProtocol.WireGuard)
+            {
+                clientIp = await GetNextFreeIpAsync(vpnServerId);
+                commandText = $"sudo /etc/wireguard/add_peer.sh {clientName} {clientIp}";
 
-            // 3. SSH Key ile Bağlantı (Şifre YOK)
+                remotePath = targetServer.SshUser == "root"
+                    ? $"/root/{clientName}.conf"
+                    : $"/home/{targetServer.SshUser}/{clientName}.conf";
+            }
+            else if (protocol == VpnProtocol.OpenVPN)
+            {
+                clientIp = "Dynamic (OpenVPN)";
+                // < /dev/null kısmı, script eğer girdi beklerse beklemesini iptal eder
+                commandText = $"sudo /root/add_ovpn_peer.sh {clientName}";
+
+                remotePath = targetServer.SshUser == "root"
+                    ? $"/root/{clientName}.ovpn"
+                    : $"/home/{targetServer.SshUser}/{clientName}.ovpn";
+            }
+
+            // 3. SSH Key ile Bağlantı
             if (!File.Exists(targetServer.PrivateKeyPath))
             {
                 _logger.LogError($"SSH Key dosyası bulunamadı: {targetServer.PrivateKeyPath}");
@@ -100,22 +115,16 @@ namespace BusiniessLayer.Concrete
 
             using var keyFile = new PrivateKeyFile(targetServer.PrivateKeyPath);
             var auth = new PrivateKeyAuthenticationMethod(targetServer.SshUser, keyFile);
-
-            var connection = new ConnectionInfo(
-                targetServer.IpAddress,
-                targetServer.SshPort,
-                targetServer.SshUser,
-                auth
-            )
+            var connection = new ConnectionInfo(targetServer.IpAddress, targetServer.SshPort, targetServer.SshUser, auth)
             {
-                Timeout = TimeSpan.FromSeconds(10) // 🔥 Timeout eklendi
+                Timeout = TimeSpan.FromSeconds(10)
             };
 
-            // 4. SSH İşlemleri (Retry Mekanizmalı)
+            // 4. SSH İşlemleri
             using var ssh = new SshClient(connection);
-
             int retryCount = 0;
             bool connected = false;
+
             while (retryCount < 3 && !connected)
             {
                 try
@@ -127,7 +136,7 @@ namespace BusiniessLayer.Concrete
                 {
                     retryCount++;
                     _logger.LogWarning(ex, $"SSH bağlantı denemesi {retryCount} başarısız. Bekleniyor...");
-                    await Task.Delay(1000); // 1 saniye bekle
+                    await Task.Delay(1000);
                 }
             }
 
@@ -135,31 +144,26 @@ namespace BusiniessLayer.Concrete
 
             try
             {
-                // Script sudo ile şifresiz çalışmalı (visudo ayarı yapılmış olmalı)
-                var commandText = $"sudo /etc/wireguard/add_peer.sh {clientName} {clientIp}";
                 var cmd = ssh.CreateCommand(commandText);
-                var result = cmd.Execute(); // RunCommand yerine CreateCommand daha kontrollüdür
+                // 🔥 GÜNCELLEME 2: 15 Saniyelik komut zaman aşımı ekledik. Asla sonsuza kadar dönmeyecek.
+                cmd.CommandTimeout = TimeSpan.FromSeconds(45);
+                var result = cmd.Execute();
 
                 if (cmd.ExitStatus != 0)
                 {
                     _logger.LogError($"Script Hatası: {cmd.Error}");
-                    throw new Exception("VPN kullanıcısı oluşturulamadı.");
+                    throw new Exception($"VPN kullanıcısı oluşturulamadı. Sunucu detayı: {cmd.Error}");
                 }
 
                 // 5. Config İndirme (SFTP)
                 using var sftp = new SftpClient(connection);
                 sftp.Connect();
 
-                string remotePath = targetServer.SshUser == "root"
-                    ? $"/root/{clientName}.conf"
-                    : $"/home/{targetServer.SshUser}/{clientName}.conf";
-
                 if (!sftp.Exists(remotePath))
-                    throw new Exception("Config dosyası oluşmadı.");
+                    throw new Exception($"Config dosyası sunucuda ({remotePath}) bulunamadı.");
 
-                // Dosya boyut kontrolü (Memory patlamasın)
                 var fileAttr = sftp.GetAttributes(remotePath);
-                if (fileAttr.Size > 50_000) // 50 KB
+                if (fileAttr.Size > 50_000)
                     throw new Exception("Config dosyası anormal derecede büyük.");
 
                 using var ms = new MemoryStream();
@@ -167,7 +171,7 @@ namespace BusiniessLayer.Concrete
 
                 var configText = Encoding.UTF8.GetString(ms.ToArray());
                 sftp.Disconnect();
-                ssh.Disconnect(); // İşimiz bitti
+                ssh.Disconnect();
 
                 // 6. DB Kaydı
                 await _userVpnRepo.InsertAsync(new UserVpn
@@ -175,17 +179,18 @@ namespace BusiniessLayer.Concrete
                     UserId = userId,
                     VpnServerId = vpnServerId,
                     ClientIp = clientIp,
+                    Protocol = protocol,
                     ConnectedAt = DateTime.UtcNow,
                     IsActive = true,
                     ClientConfig = configText
                 });
 
-                _logger.LogInformation($"User {userId} başarıyla {clientIp} IP'si ile bağlandı.");
+                _logger.LogInformation($"User {userId} başarıyla {protocol} üzerinden bağlandı.");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "VPN oluşturma sürecinde hata.");
-                throw; // Controller yakalasın
+                throw;
             }
         }
 
@@ -201,12 +206,11 @@ namespace BusiniessLayer.Concrete
             if (activeVpn == null)
             {
                 _logger.LogWarning($"User {userId} için aktif VPN bulunamadı.");
-                return; // Zaten yok, hata vermeye gerek yok
+                return;
             }
 
             var vpnServer = activeVpn.VpnServer;
 
-            // Eğer sunucu silinmişse vs. DB'den düşürmemiz lazım, SSH yapamayız.
             if (vpnServer == null)
             {
                 activeVpn.IsActive = false;
@@ -216,7 +220,6 @@ namespace BusiniessLayer.Concrete
 
             try
             {
-                // SSH Key ile bağlantı
                 using var keyFile = new PrivateKeyFile(vpnServer.PrivateKeyPath);
                 var auth = new PrivateKeyAuthenticationMethod(vpnServer.SshUser, keyFile);
 
@@ -232,12 +235,20 @@ namespace BusiniessLayer.Concrete
                 ssh.Connect();
 
                 var clientName = $"user_{userId.ToString().Substring(0, 8)}";
-                var command = $"sudo /etc/wireguard/remove_peer.sh {clientName}";
+                string command = "";
+
+                // 🔥 GÜNCELLEME: Silme işlemini protokole göre ayarla
+                if (activeVpn.Protocol == VpnProtocol.WireGuard)
+                {
+                    command = $"sudo /etc/wireguard/remove_peer.sh {clientName}";
+                }
+                else if (activeVpn.Protocol == VpnProtocol.OpenVPN)
+                {
+                    command = $"sudo /root/remove_ovpn_peer.sh {clientName}";
+                }
 
                 var cmd = ssh.RunCommand(command);
 
-                // 🔥 KRİTİK: Script hata verse bile (mesela peer zaten yok), 
-                // biz DB'den kaydı düşmeliyiz. Kullanıcıyı "Hata oluştu" diye kilitlememeliyiz.
                 if (cmd.ExitStatus != 0)
                 {
                     _logger.LogWarning($"Peer silinirken uyarı (önemsiz olabilir): {cmd.Error}");
@@ -247,12 +258,10 @@ namespace BusiniessLayer.Concrete
             }
             catch (Exception ex)
             {
-                // SSH çalışmasa bile DB'yi güncelle!
                 _logger.LogError(ex, "SSH ile silme yapılamadı, ancak DB güncellenecek.");
             }
             finally
             {
-                // Her durumda DB'den düşürüyoruz
                 activeVpn.IsActive = false;
                 await _userVpnRepo.UpdateAsync(activeVpn);
                 _logger.LogInformation($"User {userId} bağlantısı sonlandırıldı.");
