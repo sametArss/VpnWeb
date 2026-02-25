@@ -1,8 +1,37 @@
 ﻿@model EntityLayer.Concrete.UserVpn
+@using EntityLayer.Concrete
 
 @{
     Layout = null;
     ViewData["Title"] = "VPN Status";
+
+    // Protokol adı ve ikon
+    string protoName = Model != null ? Model.Protocol.ToString() : "";
+    string protoIcon = (Model != null && Model.Protocol == VpnProtocol.OpenVPN)
+        ? "fa-globe"
+        : "fa-network-wired";
+    string protoBadgeClass = (Model != null && Model.Protocol == VpnProtocol.OpenVPN)
+        ? "proto-badge-ovpn"
+        : "proto-badge-wg";
+
+
+    // ConnectedAt DB'de UTC olarak kaydedildi, Türkiye saatine çeviriyoruz (UTC+3)
+    var turkeyZone = TimeZoneInfo.FindSystemTimeZoneById(
+        System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+            ? "Turkey Standard Time"
+            : "Europe/Istanbul"
+    );
+    DateTime connectedAtTr = Model != null && Model.IsActive
+        ? TimeZoneInfo.ConvertTimeFromUtc(Model.ConnectedAt, turkeyZone)
+        : DateTime.MinValue;
+    DateTime nowTr = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, turkeyZone);
+
+    double initialSeconds = 0;
+    if (Model != null && Model.IsActive)
+    {
+        initialSeconds = (nowTr - connectedAtTr).TotalSeconds;
+        if (initialSeconds < 0) initialSeconds = 0;
+    }
 }
 
 <!DOCTYPE html>
@@ -16,6 +45,57 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="~/css/status.css" rel="stylesheet" />
+    <style>
+        /* ── Protokol Badge ── */
+        .proto-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+        }
+
+        .proto-badge-wg {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1.5px solid rgba(59, 130, 246, 0.4);
+            color: #93c5fd;
+        }
+
+        .proto-badge-ovpn {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1.5px solid rgba(245, 158, 11, 0.4);
+            color: #fcd34d;
+        }
+
+        /* ── Bağlanma zamanı satırı ── */
+        .connected-time-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.83rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .connected-time-row i {
+            color: #475569;
+        }
+
+        /* ── Info row içindeki proto satırı ── */
+        .info-row .proto-inline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Download butonu — loading tetikleme */
+        .btn-download {
+            position: relative;
+        }
+    </style>
 </head>
 
 <body>
@@ -59,7 +139,7 @@
                 {
                     <div class="status-badge active">
                         <span class="status-icon"></span>
-                        Connected & Secure
+                        Connected &amp; Secure
                     </div>
                 }
                 else
@@ -73,7 +153,10 @@
 
             @if (Model != null && Model.IsActive)
             {
+                <!-- ── Bağlantı Bilgileri ── -->
                 <div class="info-section">
+
+                    <!-- IP Adresi -->
                     <div class="info-row">
                         <span class="info-label">
                             <i class="fa-solid fa-network-wired"></i>
@@ -81,6 +164,8 @@
                         </span>
                         <span class="info-value">@Model.ClientIp</span>
                     </div>
+
+                    <!-- Şifreleme -->
                     <div class="info-row">
                         <span class="info-label">
                             <i class="fa-solid fa-lock"></i>
@@ -88,15 +173,36 @@
                         </span>
                         <span class="info-value">Encrypted</span>
                     </div>
+
+                    <!-- Protokol — dinamik -->
                     <div class="info-row">
                         <span class="info-label">
                             <i class="fa-solid fa-bolt"></i>
                             Protocol
                         </span>
-                        <span class="info-value">WireGuard</span>
+                        <span class="info-value proto-inline">
+                            <span class="proto-badge @protoBadgeClass">
+                                <i class="fa-solid @protoIcon"></i>
+                                @protoName
+                            </span>
+                        </span>
                     </div>
+
+                    <!-- Bağlanma Zamanı -->
+                    <div class="info-row">
+                        <span class="info-label">
+                            <i class="fa-solid fa-clock"></i>
+                            Connected At
+                        </span>
+                        <span class="info-value">
+                            @connectedAtTr.ToString("dd MMM yyyy  HH:mm:ss") <small style="color:#64748b;">(TR)</small>
+                            <span id="elapsedTimer" style="margin-left:10px; font-size:0.8rem; color:#64748b;"></span>
+                        </span>
+                    </div>
+
                 </div>
 
+                <!-- ── QR Kod (sadece WireGuard) ── -->
                 @if (ViewBag.QrCodeImage != null)
                 {
                     <div class="qr-section">
@@ -108,12 +214,21 @@
                     </div>
                 }
 
+                <!-- ── Eylem Butonları ── -->
                 <div class="action-buttons">
-                    <a asp-action="DownloadConfig" class="btn btn-primary">
+                    <!--
+                        Download Config: data-navigate="false" sayesinde loading overlay AÇILMAZ.
+                        Tarayıcı dosyayı arka planda indirir, sayfa değişmez.
+                    -->
+                    <a asp-action="DownloadConfig"
+                       class="btn btn-primary btn-download"
+                       data-navigate="false"
+                       id="downloadConfigBtn">
                         <i class="fa-solid fa-download"></i>
                         Download Config
                     </a>
-                    <form asp-action="Disconnect" method="post" style="display:inline;">
+
+                    <form asp-action="Disconnect" method="post" style="display:inline;" class="nav-form">
                         <button type="submit" class="btn btn-danger">
                             <i class="fa-solid fa-power-off"></i>
                             Disconnect
@@ -121,6 +236,7 @@
                     </form>
                 </div>
 
+                <!-- ── Config Metni ── -->
                 <div class="config-section">
                     <button class="collapse-btn" onclick="toggleConfig()">
                         <i class="fa-solid fa-file-code"></i>
@@ -137,7 +253,7 @@
                     <i class="fa-solid fa-plug-circle-xmark icon"></i>
                     <h2>No Active Connection</h2>
                     <p>You are not currently connected to any VPN server.</p>
-                    <a asp-action="Index" class="btn btn-success">
+                    <a asp-action="Index" class="btn btn-success nav-link-overlay">
                         <i class="fa-solid fa-server"></i>
                         Browse Servers
                     </a>
@@ -145,34 +261,6 @@
             }
         </div>
     </div>
-
-    <script>
-        function toggleConfig() {
-            const content = document.getElementById('configContent');
-            const text = document.getElementById('toggleText');
-            content.classList.toggle('show');
-
-            if (content.classList.contains('show')) {
-                text.textContent = 'Hide Configuration';
-            } else {
-                text.textContent = 'Show Configuration';
-            }
-        }
-
-        // Loading overlay script
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function () {
-                document.getElementById('loadingOverlay').style.display = 'flex';
-            });
-        });
-
-        document.querySelectorAll('a').forEach(link => {
-            if (!link.hasAttribute('href') || link.getAttribute('href').startsWith('#')) return;
-            link.addEventListener('click', function (e) {
-                document.getElementById('loadingOverlay').style.display = 'flex';
-            });
-        });
-    </script>
 
     <!-- Loading Overlay -->
     <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -189,6 +277,66 @@
         </div>
     </div>
     <link href="~/css/overloading.css" rel="stylesheet" />
+
+    <script>
+        /* ── Config toggle ── */
+        function toggleConfig() {
+            const content = document.getElementById('configContent');
+            const text = document.getElementById('toggleText');
+            if (!content || !text) return;
+
+            content.classList.toggle('show');
+            text.textContent = content.classList.contains('show')
+                ? 'Hide Configuration'
+                : 'Show Configuration';
+        }
+
+        /* ── Loading Overlay ── */
+        function showOverlay() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'flex';
+        }
+
+        document.querySelectorAll('form').forEach(function (form) {
+            form.addEventListener('submit', showOverlay);
+        });
+
+        document.querySelectorAll('a[href], a[asp-action]').forEach(function (link) {
+            if (link.dataset.navigate === 'false') return;
+            var href = link.getAttribute('href') || '';
+            if (!href || href.startsWith('#')) return;
+            link.addEventListener('click', showOverlay);
+        });
+
+        /* ── Geçen Süre Sayacı ── */
+           @if (Model != null && Model.IsActive)
+        {
+                @: (function() {
+                @:     // Sunucudan gelen başlangıç saniyesi
+                @:     var totalSeconds = Math.floor(@initialSeconds);
+                @:
+                @:     function updateElapsed() {
+                @:         totalSeconds++; // Her saniye bir artır
+                @:
+                @:         var h = Math.floor(totalSeconds / 3600);
+                @:         var m = Math.floor((totalSeconds % 3600) / 60);
+                @:         var s = totalSeconds % 60;
+                @:
+                @:         // 'n < 10' hatasından kaçınmak için padStart kullanıyoruz
+                @:         var pad = function(n) { return n.toString().padStart(2, '0'); };
+                @:
+                @:         var timerElem = document.getElementById('elapsedTimer');
+                @:         if (timerElem) {
+                @:             timerElem.textContent = '(' + pad(h) + ':' + pad(m) + ':' + pad(s) + ' geçti)';
+                @:         }
+                @:     }
+                @:
+                @:     // İlk çalıştır ve her saniye güncelle
+                @:     updateElapsed();
+                @:     setInterval(updateElapsed, 1000);
+                @: })();
+        }
+    </script>
 
 </body>
 

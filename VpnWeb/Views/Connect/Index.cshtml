@@ -16,46 +16,147 @@
     <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="~/css/dashboard.css" rel="stylesheet" />
     <style>
-        /* İki butonun yan yana güzel durması için ufak bir flex ayarı */
-        .connect-btn-group {
+        /* ── Protokol Seçici ── */
+        .protocol-selector {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin: 16px 0;
         }
 
-            .connect-btn-group .btn {
-                flex: 1;
-                font-size: 0.85rem;
-                padding: 8px 12px;
-                border-radius: 6px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 5px;
-                transition: all 0.3s ease;
-            }
-        /* İsteğe bağlı renk ayarlamaları */
-        .btn-wg {
-            background-color: #3b82f6;
-            color: white;
+        .protocol-option {
+            flex: 1;
+            position: relative;
+        }
+
+        .protocol-option input[type="radio"] {
+            display: none;
+        }
+
+        .protocol-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 10px 6px;
+            border-radius: 10px;
+            border: 1.5px solid rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.04);
+            color: #94a3b8;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            user-select: none;
+        }
+
+        .protocol-label .proto-icon {
+            font-size: 1rem;
+        }
+
+        /* WireGuard seçilince */
+        .protocol-option input[value="WireGuard"]:checked ~ .protocol-label {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            box-shadow: 0 0 14px rgba(59,130,246,0.25);
+        }
+
+        /* OpenVPN seçilince */
+        .protocol-option input[value="OpenVPN"]:checked ~ .protocol-label {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+            box-shadow: 0 0 14px rgba(245,158,11,0.25);
+        }
+
+        .protocol-label:hover {
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.08);
+            color: #e2e8f0;
+        }
+
+        /* ── Bağlan Butonu ── */
+        .connect-main-btn {
+            width: 100%;
+            padding: 13px;
+            border-radius: 12px;
             border: none;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            letter-spacing: 0.3px;
+            text-decoration: none;
         }
 
-            .btn-wg:hover {
-                background-color: #2563eb;
-                color: white;
-            }
+        .connect-main-btn:hover {
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59,130,246,0.45);
+        }
 
-        .btn-ovpn {
-            background-color: #f59e0b;
-            color: white;
+        .connect-main-btn:disabled,
+        .connect-main-btn.disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ── Kart büyütme overrides ── */
+        .server-card {
+            padding: 2rem 1.75rem !important;
+            border-radius: 20px !important;
+        }
+
+        .server-grid {
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)) !important;
+            gap: 2rem !important;
+        }
+
+        .card-icon {
+            width: 58px !important;
+            height: 58px !important;
+            font-size: 1.7rem !important;
+            border-radius: 14px !important;
+            margin-bottom: 1.25rem !important;
+        }
+
+        .server-info h3 {
+            font-size: 1.4rem !important;
+        }
+
+        .server-info p {
+            font-size: 0.95rem !important;
+        }
+
+        .server-stats {
+            font-size: 0.9rem !important;
+            margin: 1.2rem 0 !important;
+        }
+
+        /* Divider */
+        .proto-divider {
             border: none;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            margin: 0.5rem 0 0;
         }
 
-            .btn-ovpn:hover {
-                background-color: #d97706;
-                color: white;
-            }
+        .proto-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 6px;
+        }
     </style>
 </head>
 
@@ -151,6 +252,7 @@
             <div class="server-grid">
                 @foreach (var vpn in Model)
                 {
+                    var cardId = $"card_{vpn.Id}";
                     <div class="server-card">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="card-icon">
@@ -182,14 +284,44 @@
                             </div>
                         </div>
 
-                        <div class="connect-btn-group">
-                            <a asp-controller="Connect" asp-action="Connect" asp-route-id="@vpn.Id" asp-route-protocol="@VpnProtocol.WireGuard" class="btn btn-wg">
-                                <i class="fa-solid fa-network-wired"></i> WireGuard
-                            </a>
-                            <a asp-controller="Connect" asp-action="Connect" asp-route-id="@vpn.Id" asp-route-protocol="@VpnProtocol.OpenVPN" class="btn btn-ovpn">
-                                <i class="fa-solid fa-globe"></i> OpenVPN
-                            </a>
+                        <hr class="proto-divider" />
+
+                        <!-- Protokol Seçimi -->
+                        <p class="proto-title mt-3">Protokol Seç</p>
+                        <div class="protocol-selector">
+                            <div class="protocol-option">
+                                <input type="radio" name="protocol_@vpn.Id" value="WireGuard"
+                                       id="wg_@vpn.Id" checked>
+                                <label class="protocol-label" for="wg_@vpn.Id">
+                                    <i class="fa-solid fa-network-wired proto-icon"></i>
+                                    WireGuard
+                                </label>
+                            </div>
+                            <div class="protocol-option">
+                                <input type="radio" name="protocol_@vpn.Id" value="OpenVPN"
+                                       id="ovpn_@vpn.Id">
+                                <label class="protocol-label" for="ovpn_@vpn.Id">
+                                    <i class="fa-solid fa-globe proto-icon"></i>
+                                    OpenVPN
+                                </label>
+                            </div>
                         </div>
+
+                        <!-- Bağlan Butonu -->
+                        <a id="connectBtn_@vpn.Id"
+                           href="/Connect/Connect?id=@vpn.Id&protocol=WireGuard"
+                           class="connect-main-btn @(!vpn.IsActive ? "disabled" : "")"
+                           onclick="if(this.classList.contains('disabled')){return false;} showLoading();">
+                            <i class="fa-solid fa-bolt"></i>
+                            Bağlan
+                        </a>
+
+                        @if (!vpn.IsActive)
+                        {
+                            <p style="text-align:center; font-size:0.78rem; color:#ef4444; margin-top:8px; margin-bottom:0;">
+                                <i class="fa-solid fa-circle-xmark me-1"></i>Bu sunucu şu an çevrimdışı
+                            </p>
+                        }
                     </div>
                 }
             </div>
@@ -214,19 +346,25 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function () {
-                document.getElementById('loadingOverlay').style.display = 'flex';
-            });
-        });
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
 
-        document.querySelectorAll('a.btn-wg, a.btn-ovpn').forEach(link => {
-            if (!link.hasAttribute('href') || link.getAttribute('href').startsWith('#')) return;
-            link.addEventListener('click', function (e) {
-                document.getElementById('loadingOverlay').style.display = 'flex';
+        // Protokol seçimi değiştikçe Bağlan butonunun URL'ini güncelle
+        document.querySelectorAll('input[type="radio"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                // name="protocol_ID" → ID'yi al
+                var parts = this.name.split('_');
+                var serverId = parts[parts.length - 1];
+                var protocol = this.value;
+                var btn = document.getElementById('connectBtn_' + serverId);
+                if (btn) {
+                    btn.href = '/Connect/Connect?id=' + serverId + '&protocol=' + protocol;
+                }
             });
         });
     </script>
+
 </body>
 
 </html>
