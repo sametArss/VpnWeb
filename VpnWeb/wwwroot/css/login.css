@@ -117,6 +117,23 @@ body {
         transition: color 0.3s;
     }
 
+.eye-toggle {
+    left: auto !important;
+    right: 1rem !important;
+    cursor: pointer;
+    color: #888;
+    transition: color 0.2s;
+    z-index: 10;
+}
+
+.input-wrapper input[type="password"] {
+    padding-right: 2.5rem;
+}
+
+.eye-toggle:hover {
+    color: var(--primary);
+}
+
 .form-control {
     width: 100%;
     padding: 0.875rem 1rem 0.875rem 3rem;
