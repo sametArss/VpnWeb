@@ -1,0 +1,641 @@
+﻿@using EntityLayer.Concrete
+@model List<VpnServer>
+@{
+    Layout = null;
+    ViewData["Title"] = "VPN Sunucu Yönetimi";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GlobalShield</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #818cf8;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f8fafc;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            padding: 2.5rem 2rem;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .header-title h1 {
+            font-weight: 700;
+            font-size: 2.2rem;
+            margin-bottom: 0.25rem;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        .btn-custom-primary {
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            color: white;
+            border: none;
+            padding: 0.85rem 1.75rem;
+            border-radius: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            text-decoration: none;
+        }
+
+        .btn-custom-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+            color: white;
+        }
+
+        .server-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.75rem;
+        }
+
+        .server-table th {
+            color: #94a3b8;
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 0 1.25rem;
+        }
+
+        .server-row {
+            background: rgba(255, 255, 255, 0.03);
+            transition: all 0.2s ease;
+        }
+
+        .server-row:hover {
+            background: rgba(255, 255, 255, 0.07);
+            transform: scale(1.005);
+        }
+
+        .server-row td {
+            padding: 1.25rem;
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .server-row td:first-child {
+            border-left: 1px solid var(--border-color);
+            border-top-left-radius: 1rem;
+            border-bottom-left-radius: 1rem;
+        }
+
+        .server-row td:last-child {
+            border-right: 1px solid var(--border-color);
+            border-top-right-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+
+        .badge-status {
+            padding: 0.4rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge-inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            cursor: pointer;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid var(--border-color);
+            border-radius: 1.5rem;
+            color: white;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.75rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 1.75rem;
+        }
+
+        .form-control, .form-select {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.85rem;
+            border-radius: 0.85rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: #0f172a;
+            border-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #e2e8f0;
+            margin-bottom: 0.6rem;
+            font-size: 0.9rem;
+        }
+
+        .text-muted {
+            color: #94a3b8 !important;
+        }
+
+        .alert strong {
+            color: #f8fafc;
+        }
+
+        .alert {
+            color: #f1f5f9 !important;
+        }
+
+        /* Navbar Overrides */
+        .navbar-custom {
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .nav-link {
+            color: #94a3b8 !important;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: #fff !important;
+        }
+
+        .nav-link i {
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <i class="fa-solid fa-shield-halved text-primary" style="font-size: 1.7rem;"></i>
+                <span class="fw-bold fs-4">GlobalShield</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto gap-2">
+                    <li class="nav-item">
+                        <a class="nav-link active" asp-controller="VpnServer" asp-action="Index">
+                            <i class="fa-solid fa-server me-2"></i>Servers
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><i class="fa-solid fa-gear me-2"></i>Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Connect" asp-action="Status">
+                            <i class="fa-solid fa-wifi me-2"></i>Status
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Account/Profile">
+                            <i class="fa-solid fa-user me-2"></i>Account
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-container">
+        
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-lg mb-4" role="alert" style="background: rgba(16, 185, 129, 0.2); border-left: 4px solid #10b981; border-radius: 1rem; padding: 1.25rem;">
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-circle-check fs-4 me-3" style="color: #10b981;"></i>
+                    <div>
+                        <strong class="d-block mb-1">Başarılı!</strong>
+                        <span style="color: #d1fae5;">@TempData["Success"]</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-lg mb-4" role="alert" style="background: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; border-radius: 1rem; padding: 1.25rem;">
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-circle-exclamation fs-4 me-3" style="color: #ef4444;"></i>
+                    <div>
+                        <strong class="d-block mb-1">Hata!</strong>
+                        <span style="color: #fee2e2;">@TempData["Error"]</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <div class="header-section">
+            <div class="header-title">
+                <h1>Sunucu Yönetimi</h1>
+                <p>Altyapınızdaki tüm aktif VPN sunucularını buradan yönetin.</p>
+            </div>
+            <button class="btn-custom-primary" data-bs-toggle="modal" data-bs-target="#addServerModal">
+                <i class="fa-solid fa-plus"></i> Yeni Sunucu Ekle
+            </button>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-md-4">
+                <div class="glass-card mb-0 py-4 px-4 h-100">
+                    <div class="d-flex align-items-center">
+                        <div class="btn-action me-4" style="background: rgba(79, 70, 229, 0.15); color: #818cf8; width: 60px; height: 60px; font-size: 1.5rem; border: none; cursor: default;">
+                            <i class="fa-solid fa-server"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase letter-spacing-1">Toplam Sunucu</div>
+                            <div class="h3 mb-0 fw-bold">@Model.Count</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card mb-0 py-4 px-4 h-100">
+                    <div class="d-flex align-items-center">
+                        <div class="btn-action me-4" style="background: rgba(16, 185, 129, 0.15); color: #34d399; width: 60px; height: 60px; font-size: 1.5rem; border: none; cursor: default;">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase letter-spacing-1">Aktif Sunucu</div>
+                            <div class="h3 mb-0 fw-bold">@Model.Count(x => x.IsActive)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card mb-0 py-4 px-4 h-100">
+                    <div class="d-flex align-items-center">
+                        <div class="btn-action me-4" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; width: 60px; height: 60px; font-size: 1.5rem; border: none; cursor: default;">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-medium text-uppercase letter-spacing-1">Ülkeler</div>
+                            <div class="h3 mb-0 fw-bold">@Model.Select(x => x.Country).Distinct().Count()</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="table-responsive">
+                <table class="server-table">
+                    <thead>
+                        <tr>
+                            <th>SUNUCU ADI</th>
+                            <th>ÜLKE</th>
+                            <th>IP ADRESİ</th>
+                            <th>SSH ERİŞİMİ</th>
+                            <th>DURUM</th>
+                            <th class="text-end">EYLEMLER</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr class="server-row">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3 p-2 rounded-3 bg-dark-subtle">
+                                            <i class="fa-solid fa-network-wired text-primary fs-5"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">@item.Name</div>
+                                            <div class="small text-muted">ID: #@item.Id</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="d-flex align-items-center gap-2">
+                                         <i class="fa-solid fa-location-dot text-secondary"></i> @item.Country
+                                    </span>
+                                </td>
+                                <td>
+                                    <code class="text-info bg-dark bg-opacity-50 px-3 py-1 rounded-pill small border border-light border-opacity-10">@item.IpAddress</code>
+                                </td>
+                                <td>
+                                    <span class="small fw-medium text-muted">@item.SshUser<span class="mx-1 text-primary">:</span>@item.SshPort</span>
+                                </td>
+                                <td>
+                                    @if (item.IsActive)
+                                    {
+                                        <span class="badge-status badge-active"><i class="fa-solid fa-circle fa-2xs me-2"></i>Aktif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-status badge-inactive"><i class="fa-solid fa-circle fa-2xs me-2"></i>Pasif</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="action-btns justify-content-end">
+                                        <button class="btn-action btn-edit" title="Düzenle" onclick="editServer(@item.Id)">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" title="Sil" onclick="confirmDelete(@item.Id, '@item.Name')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-folder-open mb-4 d-block" style="font-size: 4rem; opacity: 0.2;"></i>
+                                    <p class="fs-5 fw-medium" style="color: #cbd5e1;">Henüz bir sunucu eklenmemiş.</p>
+                                    <button class="btn btn-outline-primary btn-sm mt-2" data-bs-toggle="modal" data-bs-target="#addServerModal" style="border-radius: 8px;">İlk Sunucuyu Ekle</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals (Add, Edit, Delete) -->
+    @* Existing Modals from your CRUD implementation *@
+    
+    <!-- Add Server Modal -->
+    <div class="modal fade" id="addServerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form asp-action="Add" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-header">
+                        <h5 class="modal-title d-flex align-items-center"><i class="fa-solid fa-circle-plus text-primary me-3"></i>Yeni Sunucu Ekle</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Sunucu Adı</label>
+                                <input type="text" name="Name" class="form-control" placeholder="Örn: Germany-1" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Ülke</label>
+                                <input type="text" name="Country" class="form-control" placeholder="Örn: Germany" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">IP Adresi</label>
+                                <input type="text" name="IpAddress" class="form-control" placeholder="1.2.3.4" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SSH Port</label>
+                                <input type="number" name="SshPort" class="form-control" value="22" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SSH Kullanıcı Adı</label>
+                                <input type="text" name="SshUser" class="form-control" placeholder="root" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Private Key Yolu (Opsiyonel)</label>
+                                <input type="text" name="PrivateKeyPath" class="form-control" placeholder="/path/to/key">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal" style="border-radius: 0.85rem;">Vazgeç</button>
+                        <button type="submit" class="btn-custom-primary px-4 shadow-none">Sunucuyu Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Server Modal -->
+    <div class="modal fade" id="editServerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="Id" id="edit-id">
+                    <input type="hidden" name="CreatedAt" id="edit-createdat">
+                    <div class="modal-header">
+                        <h5 class="modal-title d-flex align-items-center"><i class="fa-solid fa-pen-to-square text-primary me-3"></i>Sunucu Düzenle</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Sunucu Adı</label>
+                                <input type="text" name="Name" id="edit-name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Ülke</label>
+                                <input type="text" name="Country" id="edit-country" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">IP Adresi</label>
+                                <input type="text" name="IpAddress" id="edit-ip" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SSH Port</label>
+                                <input type="number" name="SshPort" id="edit-port" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">SSH Kullanıcı Adı</label>
+                                <input type="text" name="SshUser" id="edit-user" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Durum</label>
+                                <select name="IsActive" id="edit-active" class="form-select">
+                                    <option value="true">Aktif</option>
+                                    <option value="false">Pasif</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Private Key Yolu</label>
+                                <input type="text" name="PrivateKeyPath" id="edit-key" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-dark px-4" data-bs-dismiss="modal" style="border-radius: 0.85rem;">Vazgeç</button>
+                        <button type="submit" class="btn-custom-primary px-4 shadow-none">Değişiklikleri Kaydet</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <form asp-action="Delete" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="delete-id">
+                    <div class="modal-body p-5 text-center">
+                        <div class="mb-4">
+                            <div class="mx-auto bg-danger bg-opacity-15 rounded-circle d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <i class="fa-solid fa-triangle-exclamation text-danger fs-1"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3">Emin misiniz?</h3>
+                        <p class="text-muted"><span id="delete-server-name" class="fw-bold text-light"></span> sunucusunu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+                    </div>
+                    <div class="modal-footer border-0 justify-content-center pb-5 gap-2">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" style="border-radius: 12px; font-weight: 600;">Vazgeç</button>
+                        <button type="submit" class="btn btn-danger px-4" style="border-radius: 12px; font-weight: 600;">Evet, Sil</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function editServer(id) {
+            fetch(`/VpnServer/GetServerById/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('edit-id').value = data.id;
+                    document.getElementById('edit-name').value = data.name;
+                    document.getElementById('edit-country').value = data.country;
+                    document.getElementById('edit-ip').value = data.ipAddress;
+                    document.getElementById('edit-port').value = data.sshPort;
+                    document.getElementById('edit-user').value = data.sshUser;
+                    document.getElementById('edit-active').value = data.isActive.toString();
+                    document.getElementById('edit-key').value = data.privateKeyPath || '';
+                    document.getElementById('edit-createdat').value = data.createdAt;
+                    
+                    var editModal = new bootstrap.Modal(document.getElementById('editServerModal'));
+                    editModal.show();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Veri yüklenirken bir hata oluştu.');
+                });
+        }
+
+        function confirmDelete(id, name) {
+            document.getElementById('delete-id').value = id;
+            document.getElementById('delete-server-name').innerText = name;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+
+        // Auto-hide alerts
+        setTimeout(function() {
+            var alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                var bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 4000);
+    </script>
+
+</body>
+</html>

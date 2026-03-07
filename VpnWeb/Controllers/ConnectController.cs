@@ -33,7 +33,7 @@ namespace VpnWeb.Controllers
                 return RedirectToAction("Status");
             }
 
-            var vpns = _vpnService.GetActiveServers();
+            var vpns = await _vpnService.GetActiveServersAsync();
             return View(vpns);
         }
 

@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace EntityLayer.Concrete
 {
@@ -10,11 +7,25 @@ namespace EntityLayer.Concrete
     {
         public int Id { get; set; }
 
-        public string Name { get; set; }        // Germany-1
-        public string Country { get; set; }     // Germany
-        public string IpAddress { get; set; }   // 45.xxx.xxx.xxx
-        public int SshPort { get; set; }        // 22
-        public string SshUser { get; set; }     // vpnadmin
+        [Required(ErrorMessage = "Sunucu adı gereklidir")]
+        [Display(Name = "Sunucu Adı")]
+        public string Name { get; set; }
+
+        [Required(ErrorMessage = "Ülke gereklidir")]
+        [Display(Name = "Ülke")]
+        public string Country { get; set; }
+
+        [Required(ErrorMessage = "IP adresi gereklidir")]
+        [Display(Name = "IP Adresi")]
+        public string IpAddress { get; set; }
+
+        [Required(ErrorMessage = "SSH portu gereklidir")]
+        [Display(Name = "SSH Port")]
+        public int SshPort { get; set; }
+
+        [Required(ErrorMessage = "SSH kullanıcı adı gereklidir")]
+        [Display(Name = "SSH Kullanıcı")]
+        public string SshUser { get; set; }
 
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }

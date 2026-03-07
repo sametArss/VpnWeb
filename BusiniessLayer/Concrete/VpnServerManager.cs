@@ -18,11 +18,43 @@ namespace BusiniessLayer.Concrete
             _vpnRepo = vpnRepo;
         }
 
-        public List<VpnServer> GetActiveServers()
+        public async Task AddVpnServerAsync(VpnServer vpnServer)
         {
-            return _vpnRepo
-                .GetAllFilterAsync(x => x.IsActive)
-                .Result;
+            await _vpnRepo.InsertAsync(vpnServer);
+        }
+
+        public async Task DeleteVpnServerAsync(int id)
+        {
+            var vpnServer = await _vpnRepo.GetByIdAsync(id);
+            if (vpnServer != null)
+                await _vpnRepo.DeleteAsync(vpnServer);
+        }
+
+        public async Task<List<VpnServer>> GetActiveServersAsync()
+        {
+            return await _vpnRepo.GetAllFilterAsync(x => x.IsActive);
+        }
+
+        public async Task<VpnServer> GetByIdAsync(int id)
+        {
+            return await _vpnRepo.GetByIdAsync(id);
+        }
+
+        public async Task UpdateVpnServerAsync(VpnServer vpnServer)
+        {
+            var existing = await _vpnRepo.GetByIdAsync(vpnServer.Id);
+            if (existing == null) return;
+
+            existing.Name = vpnServer.Name;
+            existing.Country = vpnServer.Country;
+            existing.IpAddress = vpnServer.IpAddress;
+            existing.SshPort = vpnServer.SshPort;
+            existing.SshUser = vpnServer.SshUser;
+            existing.IsActive = vpnServer.IsActive;
+            existing.CreatedAt = vpnServer.CreatedAt;
+            existing.PrivateKeyPath = vpnServer.PrivateKeyPath;
+
+            await _vpnRepo.UpdateAsync(existing);
         }
     }
 }
