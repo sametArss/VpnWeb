@@ -276,11 +276,11 @@
                         <div class="server-stats">
                             <div class="stat-item" title="Latency">
                                 <i class="fa-solid fa-bolt"></i>
-                                <span>@((new Random()).Next(20, 150)) ms</span>
+                                <span>@(vpn.LatencyMs.HasValue ? $"{vpn.LatencyMs} ms" : "-- ms")</span>
                             </div>
                             <div class="stat-item" title="Load">
                                 <i class="fa-solid fa-users"></i>
-                                <span>@((new Random()).Next(10, 90))%</span>
+                                <span>@(vpn.LoadPercent.HasValue ? $"{vpn.LoadPercent}%" : "-- %")</span>
                             </div>
                         </div>
 

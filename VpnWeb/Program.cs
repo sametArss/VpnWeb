@@ -3,13 +3,14 @@ using BusiniessLayer.Concrete;
 using BusiniessLayer.Security;
 using DataAccessLayer.Concrete.Repository;
 using DataAcsessLayer.Abstract;
-using DataAcsessLayer.Concrete.Context;
 using DataAcsessLayer.Concrete;
+using DataAcsessLayer.Concrete.Context;
 using DataAcsessLayer.EntityFramework;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore; // UseSqlServer için gerekli
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using VpnWeb.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,6 +29,8 @@ builder.Services.AddDbContext<VpnDbContext>(options =>
 
 // Generic Repository Kaydı
 builder.Services.AddScoped(typeof(IRepositoriesDal<>), typeof(GenericRepositoryDal<>));
+
+builder.Services.AddHostedService<PingHostedService>();
 
 // Data Access (DAL) Kayıtları
 builder.Services.AddScoped<IUserDal, EFUserDal>();

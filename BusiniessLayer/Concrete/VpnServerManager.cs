@@ -53,6 +53,8 @@ namespace BusiniessLayer.Concrete
             existing.IsActive = vpnServer.IsActive;
             existing.CreatedAt = vpnServer.CreatedAt;
             existing.PrivateKeyPath = vpnServer.PrivateKeyPath;
+            existing.LatencyMs = vpnServer.LatencyMs;
+            existing.LoadPercent = vpnServer.LoadPercent;
 
             await _vpnRepo.UpdateAsync(existing);
         }
