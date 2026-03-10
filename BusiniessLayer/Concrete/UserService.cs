@@ -4,6 +4,8 @@ using DataAcsessLayer.Abstract;
 using EntityLayer.Concrete;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace BusiniessLayer.Concrete
 {
@@ -11,14 +13,20 @@ namespace BusiniessLayer.Concrete
     {
         private readonly IUserDal _userRepo;
         private readonly JwtTokenService _jwt;
-        private readonly IEmailService _emailService; // Mail servisini ekledik
+        private readonly IEmailService _emailService;
+        private readonly ILogger<UserService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserService(IUserDal userRepo, JwtTokenService jwt, IEmailService emailService)
+        public UserService(IUserDal userRepo, JwtTokenService jwt, IEmailService emailService, ILogger<UserService> logger, IHttpContextAccessor httpContextAccessor)
         {
             _userRepo = userRepo;
             _jwt = jwt;
             _emailService = emailService;
+            _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
+
+        private string? GetIp() => _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
         public async Task RegisterAsync(RegisterDto dto)
         {
@@ -60,6 +68,7 @@ namespace BusiniessLayer.Concrete
                     EmailVerificationToken = verificationToken
                 };
                 await _userRepo.InsertAsync(user);
+                _logger.LogInformation("[AUTH] Register success | Email={Email} IP={Ip}", dto.Email, GetIp());
             }
             // ----------------------------------
 
@@ -76,17 +85,28 @@ namespace BusiniessLayer.Concrete
         {
             var user = await _userRepo.GetByFilterAsync(x => x.Email == dto.Email);
             if (user == null)
+            {
+                _logger.LogWarning("[AUTH] Login failed - user not found | Email={Email} IP={Ip}", dto.Email, GetIp());
                 throw new Exception("Kullanıcı bulunamadı.");
+            }
 
             if (!PasswordHasher.Verify(dto.Password, user.PasswordHash, user.PasswordSalt))
+            {
+                _logger.LogWarning("[AUTH] Login failed - wrong password | Email={Email} IP={Ip}", dto.Email, GetIp());
                 throw new Exception("Şifre hatalı.");
+            }
 
             // KRİTİK KONTROL BURADA
             if (!user.IsEmailVerified)
+            {
+                _logger.LogWarning("[AUTH] Login failed - email not verified | Email={Email} IP={Ip}", dto.Email, GetIp());
                 throw new Exception("Lütfen önce e-posta adresinize gelen linke tıklayarak hesabınızı doğrulayın.");
+            }
 
             user.LastLoginAt = DateTime.UtcNow;
             await _userRepo.UpdateAsync(user);
+
+            _logger.LogInformation("[AUTH] Login success | UserId={UserId} Email={Email} IP={Ip}", user.Id, user.Email, GetIp());
 
             return _jwt.CreateToken(user.Id, user.Email, user.Role);
         }
@@ -113,6 +133,7 @@ namespace BusiniessLayer.Concrete
             user.IsActive = true; // İstersen hesabı burada aktif edersin
 
             await _userRepo.UpdateAsync(user);
+            _logger.LogInformation("[AUTH] Email verified | UserId={UserId} Email={Email} IP={Ip}", user.Id, user.Email, GetIp());
         }
 
 
@@ -149,6 +170,7 @@ namespace BusiniessLayer.Concrete
 
             // 7. Veritabanına kaydet
             await _userRepo.UpdateAsync(user);
+            _logger.LogInformation("[AUTH] Password changed | UserId={UserId} Email={Email} IP={Ip}", userId, user.Email, GetIp());
         }
 
         public async Task ForgotPasswordAsync(string email)
@@ -203,6 +225,7 @@ namespace BusiniessLayer.Concrete
             user.PasswordResetTokenExpire = null;
 
             await _userRepo.UpdateAsync(user);
+            _logger.LogInformation("[AUTH] Password reset | UserId={UserId} Email={Email} IP={Ip}", user.Id, user.Email, GetIp());
         }
 
 

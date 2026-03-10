@@ -44,7 +44,7 @@ namespace VpnWeb.Controllers
                     int maxCapacity = 100;
                     server.LoadPercent = (int)((activeCount / (double)maxCapacity) * 100);
 
-                    Console.WriteLine($"Sunucu: {server.Name} | ms: {server.LatencyMs} | Load: {server.LoadPercent}%");
+                    // Console.WriteLine($"Sunucu: {server.Name} | ms: {server.LatencyMs} | Load: {server.LoadPercent}%");
 
                     await repo.UpdateAsync(server);
                 }

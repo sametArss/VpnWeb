@@ -23,9 +23,9 @@ namespace DataAcsessLayer.EntityFramework
 
         public async Task<int> CountAsync(Expression<Func<UserVpn, bool>> filter)
         {
-            Console.WriteLine("CountAsync çağrıldı!"); // Debug için
+            // Console.WriteLine("CountAsync çağrıldı!"); // Debug için
             var count = await _context.UserVpns.CountAsync(filter);
-            Console.WriteLine($"Count sonucu: {count}");
+            // Console.WriteLine($"Count sonucu: {count}");
             return count;
         }
     }

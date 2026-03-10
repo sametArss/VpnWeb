@@ -14,10 +14,12 @@ namespace VpnWeb.Controllers
     public class AccountController : Controller
     {
         private readonly IUserService _userService;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(IUserService userService)
+        public AccountController(IUserService userService, ILogger<AccountController> logger)
         {
             _userService = userService;
+            _logger = logger;
         }
 
         [HttpGet]

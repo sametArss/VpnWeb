@@ -7,18 +7,31 @@ using DataAcsessLayer.Concrete;
 using DataAcsessLayer.Concrete.Context;
 using DataAcsessLayer.EntityFramework;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore; // UseSqlServer için gerekli
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using VpnWeb.Controllers;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --- Serilog Konfigürasyonu ---
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", Serilog.Events.LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // -------------------------------------------------------------------------
 // 1. SERVİSLERİN EKLENMESİ
 // -------------------------------------------------------------------------
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
 
 // --- Veritabanı Bağlantısı ---
 // Not: UseSqlServer hatası devam ederse NuGet'ten 'Microsoft.EntityFrameworkCore.SqlServer' paketini yükle.

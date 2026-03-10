@@ -2,6 +2,7 @@
 using DataAcsessLayer.Abstract;
 using EntityLayer.Concrete;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 using Renci.SshNet;
 using System;
 using System.IO;
@@ -10,6 +11,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Security.Claims;
 
 namespace BusiniessLayer.Concrete
 {
@@ -18,16 +20,22 @@ namespace BusiniessLayer.Concrete
         private readonly IUserVpnDal _userVpnRepo;
         private readonly IVpnServerDal _vpnServerRepo;
         private readonly ILogger<UserVpnManager> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public UserVpnManager(
             IUserVpnDal userVpnRepo,
             IVpnServerDal vpnServerRepo,
-            ILogger<UserVpnManager> logger)
+            ILogger<UserVpnManager> logger,
+            IHttpContextAccessor httpContextAccessor)
         {
             _userVpnRepo = userVpnRepo;
             _vpnServerRepo = vpnServerRepo;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
+
+        private string? GetIp() => _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+        private string? GetEmail() => _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Email)?.Value;
 
         private string GenerateClientName(Guid userId)
         {
@@ -84,7 +92,7 @@ namespace BusiniessLayer.Concrete
             throw new Exception("Sunucuda boş IP kalmadı.");
         }
 
-        private ConnectionInfo CreateConnection(VpnServer server)
+        private Renci.SshNet.ConnectionInfo CreateConnection(VpnServer server)
         {
             if (!File.Exists(server.PrivateKeyPath))
                 throw new Exception("SSH key bulunamadı.");
@@ -92,7 +100,7 @@ namespace BusiniessLayer.Concrete
             var keyFile = new PrivateKeyFile(server.PrivateKeyPath);
             var auth = new PrivateKeyAuthenticationMethod(server.SshUser, keyFile);
 
-            return new ConnectionInfo(
+            return new Renci.SshNet.ConnectionInfo(
                 server.IpAddress,
                 server.SshPort,
                 server.SshUser,
@@ -126,8 +134,8 @@ namespace BusiniessLayer.Concrete
         public async Task ConnectUserToVpnAsync(Guid userId, int vpnServerId, VpnProtocol protocol)
         {
             _logger.LogInformation(
-                "VPN connect isteği User:{UserId} Server:{ServerId} Protocol:{Protocol}",
-                userId, vpnServerId, protocol);
+                "[VPN] Connect request | UserId={UserId} Email={Email} ServerId={ServerId} Protocol={Protocol} IP={Ip}",
+                userId, GetEmail(), vpnServerId, protocol, GetIp());
 
             if (await HasActiveVpnAsync(userId))
                 throw new Exception("Zaten aktif VPN bağlantınız var.");
@@ -198,7 +206,7 @@ namespace BusiniessLayer.Concrete
 
                 if (cmd.ExitStatus != 0)
                 {
-                    _logger.LogError("Script hatası {Error}", cmd.Error);
+                    _logger.LogError("[VPN] SSH script error | UserId={UserId} Email={Email} Error={Error}", userId, GetEmail(), cmd.Error);
                     throw new Exception("VPN oluşturulamadı.");
                 }
 
@@ -212,7 +220,7 @@ namespace BusiniessLayer.Concrete
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "VPN oluşturma hatası User:{UserId}", userId);
+                _logger.LogError(ex, "[VPN] Connect error - SSH failed | UserId={UserId} Email={Email} ServerId={ServerId} IP={Ip}", userId, GetEmail(), vpnServerId, GetIp());
                 throw new Exception("VPN bağlantısı kurulamadı.");
             }
 
@@ -231,11 +239,11 @@ namespace BusiniessLayer.Concrete
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "DB insert başarısız User:{UserId}", userId);
+                _logger.LogError(ex, "[VPN] Connect error - DB insert failed | UserId={UserId} Email={Email} IP={Ip}", userId, GetEmail(), GetIp());
                 throw new Exception("VPN kaydı oluşturulamadı.");
             }
 
-            _logger.LogInformation("VPN bağlantısı başarılı User:{UserId}", userId);
+            _logger.LogInformation("[VPN] Connected | UserId={UserId} Email={Email} ServerId={ServerId} Protocol={Protocol} IP={Ip}", userId, GetEmail(), vpnServerId, protocol, GetIp());
         }
 
         public async Task DisconnectAsync(Guid userId)
@@ -264,19 +272,19 @@ namespace BusiniessLayer.Concrete
                 var cmd = ssh.RunCommand(command);
 
                 if (cmd.ExitStatus != 0)
-                    _logger.LogWarning("Peer silinirken hata oluştu.");
+                    _logger.LogWarning("[VPN] Disconnect warning - peer remove script error | UserId={UserId} Email={Email}", userId, GetEmail());
 
                 ssh.Disconnect();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Peer silinemedi User:{UserId}", userId);
+                _logger.LogError(ex, "[VPN] Disconnect error - peer remove failed | UserId={UserId} Email={Email} IP={Ip}", userId, GetEmail(), GetIp());
             }
 
             activeVpn.IsActive = false;
             await _userVpnRepo.UpdateAsync(activeVpn);
 
-            _logger.LogInformation("VPN bağlantısı sonlandırıldı User:{UserId}", userId);
+            _logger.LogInformation("[VPN] Disconnected | UserId={UserId} Email={Email} IP={Ip}", userId, GetEmail(), GetIp());
         }
     }
 }

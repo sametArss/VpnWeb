@@ -13,13 +13,16 @@ namespace VpnWeb.Controllers
     {
         private readonly IVpnServerService _vpnService;
         private readonly IUserVpnService _userVpnService;
+        private readonly ILogger<ConnectController> _logger;
 
         public ConnectController(
             IVpnServerService vpnService,
-            IUserVpnService userVpnService)
+            IUserVpnService userVpnService,
+            ILogger<ConnectController> logger)
         {
             _vpnService = vpnService;
             _userVpnService = userVpnService;
+            _logger = logger;
         }
 
         private Guid CurrentUserId => Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier).Value);
@@ -40,10 +43,11 @@ namespace VpnWeb.Controllers
         // 🔥 GÜNCELLEME: VpnProtocol parametresi eklendi
         public async Task<IActionResult> Connect(int id, VpnProtocol protocol)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userId = CurrentUserId;
             try
             {
-                // Protokolü manager'a gönderiyoruz
-                await _userVpnService.ConnectUserToVpnAsync(CurrentUserId, id, protocol);
+                await _userVpnService.ConnectUserToVpnAsync(userId, id, protocol);
                 return RedirectToAction("Status");
             }
             catch (Exception ex)
@@ -91,9 +95,10 @@ namespace VpnWeb.Controllers
         [HttpPost]
         public async Task<IActionResult> Disconnect()
         {
+            var userId = CurrentUserId;
             try
             {
-                await _userVpnService.DisconnectAsync(CurrentUserId);
+                await _userVpnService.DisconnectAsync(userId);
                 TempData["Success"] = "VPN bağlantısı kapatıldı";
             }
             catch (Exception ex)
@@ -107,7 +112,8 @@ namespace VpnWeb.Controllers
         [Authorize]
         public async Task<IActionResult> DownloadConfig()
         {
-            var vpn = await _userVpnService.GetActiveVpnAsync(CurrentUserId);
+            var userId = CurrentUserId;
+            var vpn = await _userVpnService.GetActiveVpnAsync(userId);
 
             if (vpn == null || string.IsNullOrEmpty(vpn.ClientConfig))
             {
@@ -117,11 +123,10 @@ namespace VpnWeb.Controllers
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(vpn.ClientConfig);
 
-            // 🔥 GÜNCELLEME: Dosya uzantısını ve adını protokole göre belirliyoruz
             string extension = vpn.Protocol == VpnProtocol.OpenVPN ? ".ovpn" : ".conf";
             string prefix = vpn.Protocol == VpnProtocol.OpenVPN ? "ovpn" : "wg";
 
-            var fileName = $"{prefix}-{CurrentUserId.ToString().Substring(0, 6)}{extension}";
+            var fileName = $"{prefix}-{userId.ToString().Substring(0, 6)}{extension}";
 
             return File(
                 bytes,
