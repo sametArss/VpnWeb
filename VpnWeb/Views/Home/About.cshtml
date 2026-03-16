@@ -1,6 +1,6 @@
 @{
     Layout = null;
-    ViewData["Title"] = "Proje Hakkında - VPN Portal";
+    ViewData["Title"] = "Proje Hakkında - GlobalShield";
 }
 
 <!DOCTYPE html>
@@ -8,8 +8,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="VPN Web Portal projesi hakkında teknik detaylar ve platformun amacı." />
+    <meta name="description" content="Global Shield projesi hakkında teknik detaylar ve platformun amacı." />
     <title>@ViewData["Title"]</title>
+    <!-- Modern Favicon -->
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="~/css/about.css" rel="stylesheet" />
@@ -31,9 +33,9 @@
 
 <!-- ═══ NAVBAR ═══ -->
 <nav id="mainNav">
-    <a href="/" class="nav-brand">
-        <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
-        <span>VPN<em>Portal</em></span>
+    <a href="/" class="nav-brand" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+        <i class="fa-solid fa-shield-halved" style="color: #3b82f6; font-size: 1.5rem;"></i>
+        <span style="font-weight: bold; font-size: 1.25rem; color: #fff;">GlobalShield</span>
     </a>
     <ul class="nav-links">
         <li><a href="/">Anasayfa</a></li>
@@ -154,7 +156,7 @@
 <!-- ═══ FOOTER ═══ -->
 <footer>
     <div class="footer-bottom">
-        <p>© @DateTime.Now.Year VPN Web Portal Projesi.</p>
+        <p>© @DateTime.Now.Year Global Shield Projesi.</p>
         <p style="display:flex;align-items:center;gap:8px;">
             <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;"></span>
             Sistem Aktif

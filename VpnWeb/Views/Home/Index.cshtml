@@ -1,6 +1,6 @@
 @{
     Layout = null;
-    ViewData["Title"] = "VPN Web Portal - Güvenli ve Hızlı Erişim";
+    ViewData["Title"] = "GlobalShield - Güvenli ve Hızlı Erişim";
 }
 
 <!DOCTYPE html>
@@ -10,6 +10,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Özel VPN yönetim ve bağlantı portalı. WireGuard ve OpenVPN destekli anlık yapılandırma." />
     <title>@ViewData["Title"]</title>
+    <!-- Modern Favicon -->
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="~/css/homeindex.css" rel="stylesheet" />
@@ -34,9 +36,9 @@
 
 <!-- ═══ NAVBAR ═══ -->
 <nav id="mainNav">
-    <a href="/" class="nav-brand">
-        <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
-        <span>VPN<em>Portal</em></span>
+    <a href="/" class="nav-brand" style="display: flex; align-items: center; gap: 8px; text-decoration: none;">
+        <i class="fa-solid fa-shield-halved" style="color: #3b82f6; font-size: 1.5rem;"></i>
+        <span style="font-weight: bold; font-size: 1.25rem; color: #fff;">GlobalShield</span>
     </a>
     <ul class="nav-links">
         <li><a href="#features">Özellikler</a></li>
@@ -244,9 +246,9 @@
 <footer>
     <div class="footer-inner">
         <div class="footer-brand">
-            <a href="/" class="nav-brand" style="display:inline-flex;">
-                <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                <span style="color:var(--text);font-size:1.2rem;font-weight:800;">VPN<em style="color:var(--primary);font-style:normal;">Portal</em></span>
+            <a href="/" class="nav-brand" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+                <i class="fa-solid fa-shield-halved" style="color: #3b82f6; font-size: 1.5rem;"></i>
+                <span style="font-weight: bold; font-size: 1.2rem; color: var(--text);">GlobalShield</span>
             </a>
             <p>Modern teknoloji yığınıyla geliştirilmiş özel VPN doğrulama ve yapılandırma platformu.</p>
         </div>
@@ -277,7 +279,7 @@
     </div>
 
     <div class="footer-bottom">
-        <p>© @DateTime.Now.Year VPN Web Portal Projesi.</p>
+        <p>© @DateTime.Now.Year Global Shield Projesi.</p>
         <p style="display:flex;align-items:center;gap:8px;">
             <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;"></span>
             Sistem Aktif

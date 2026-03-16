@@ -1,4 +1,4 @@
-﻿using BusiniessLayer.Abstract;
+using BusiniessLayer.Abstract;
 using BusiniessLayer.Security;
 using DataAcsessLayer.Abstract;
 using EntityLayer.Concrete;
@@ -76,9 +76,16 @@ namespace BusiniessLayer.Concrete
             // İlerde port değişirse diye appsettings'den almak en iyisi ama şimdilik manuel:
             string verificationLink = $"https://localhost:7177/Account/VerifyEmail?token={verificationToken}";
 
-            string emailBody = $"Merhaba {dto.FullName},<br>Hesabını doğrulamak için lütfen <a href='{verificationLink}'>buraya tıkla</a>.";
+            string emailBody = GetEmailTemplate(
+                title: "E-posta Doğrulama",
+                fullName: dto.FullName,
+                message: "Global Shield 'a kayıt olduğunuz için teşekkür ederiz. Hesabınızı aktifleştirmek ve güvenli bağlantıları hemen kullanmaya başlamak için lütfen e-posta adresinizi doğrulayın.",
+                buttonText: "Hesabımı Doğrula",
+                buttonLink: verificationLink,
+                footerMessage: "Yukarıdaki butona tıklayarak hesabınızı onaylayabilirsiniz."
+            );
 
-            await _emailService.SendEmailAsync(dto.Email, "GlobalShield - Hesap Doğrulama", emailBody);
+            await _emailService.SendEmailAsync(dto.Email, "Global Shield - E-posta Doğrulama", emailBody);
         }
 
         public async Task<string> LoginAsync(LoginDto dto)
@@ -187,17 +194,20 @@ namespace BusiniessLayer.Concrete
 
             await _userRepo.UpdateAsync(user);
 
-            string link = $"https://sametarslan.com.tr/Account/ResetPassword?token={token}";
+            string link = $"https://localhost:7177/Account/ResetPassword?token={token}";
 
-            string body = $@"
-        Merhaba {user.FullName},<br>
-        Şifreni sıfırlamak için <a href='{link}'>buraya tıkla</a>.<br>
-        Bu link 15 dakika geçerlidir.
-    ";
+            string body = GetEmailTemplate(
+                title: "Şifre Sıfırlama Talebi",
+                fullName: user.FullName,
+                message: "Hesabınızın parolasını sıfırlamak için bir talepte bulundunuz. Aşağıdaki butona tıklayarak yeni parolanızı güvenle belirleyebilirsiniz.",
+                buttonText: "Şifremi Sıfırla",
+                buttonLink: link,
+                footerMessage: "Bu bağlantı güvenlik amacıyla 15 dakika süreyle geçerlidir."
+            );
 
             await _emailService.SendEmailAsync(
                 user.Email,
-                "GlobalShield - Şifre Sıfırlama",
+                "Global Shield - Şifre Sıfırlama Talebi",
                 body
             );
         }
@@ -228,6 +238,51 @@ namespace BusiniessLayer.Concrete
             _logger.LogInformation("[AUTH] Password reset | UserId={UserId} Email={Email} IP={Ip}", user.Id, user.Email, GetIp());
         }
 
+        private string GetEmailTemplate(string title, string fullName, string message, string buttonText, string buttonLink, string footerMessage)
+        {
+            return $@"
+            <div style=""font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; padding: 50px 20px; color: #e2e8f0; line-height: 1.5;"">
+                <div style=""max-width: 600px; margin: 0 auto; background-color: #1e293b; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #334155;"">
+                    
+                    <div style=""background: linear-gradient(135deg, #1e3a8a, #3b82f6); padding: 40px 30px; text-align: center;"">
+                        <div style=""font-size: 42px; margin-bottom: 15px;"">🛡️</div>
+                        <h1 style=""color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;"">
+                            Global<span style=""font-weight: 300; color: #bfdbfe;"">Shield</span>
+                        </h1>
+                        <p style=""color: #eff6ff; margin: 10px 0 0; font-size: 15px; font-weight: 500; letter-spacing: 1px; opacity: 0.9;"">{title}</p>
+                    </div>
+                    
+                    <div style=""padding: 40px 30px; text-align: center;"">
+                        <h2 style=""margin-top: 0; font-size: 22px; color: #f8fafc; font-weight: 600;"">Sayın {fullName},</h2>
+                        <div style=""width: 40px; height: 3px; background-color: #3b82f6; margin: 20px auto; border-radius: 2px;""></div>
+                        
+                        <p style=""font-size: 16px; line-height: 1.7; color: #cbd5e1; margin-bottom: 35px;"">
+                            {message}
+                        </p>
+                        
+                        <div style=""margin-bottom: 35px;"">
+                            <a href=""{buttonLink}"" style=""display: inline-block; background: linear-gradient(to right, #2563eb, #3b82f6); color: #ffffff; text-decoration: none; padding: 15px 35px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); text-transform: uppercase; letter-spacing: 1px;"">
+                                {buttonText}
+                            </a>
+                        </div>
+                        
+                        <p style=""font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0;"">
+                            {footerMessage}
+                        </p>
+                    </div>
+                    
+                    <div style=""background-color: #0b0f19; border-top: 1px solid #1e293b; padding: 25px; text-align: center;"">
+                        <p style=""margin: 0; font-size: 13px; color: #64748b; font-weight: 500;"">
+                            © {DateTime.Now.Year} Global Shield VPN. Tüm hakları saklıdır.
+                        </p>
+                        <p style=""margin: 10px 0 0 0; font-size: 12px; color: #475569;"">
+                            Eğer bu e-postayı siz talep etmediyseniz, lütfen dikkate almayınız ve hesabınızın güvende olduğundan emin olunuz.
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>";
+        }
 
     }
 }
