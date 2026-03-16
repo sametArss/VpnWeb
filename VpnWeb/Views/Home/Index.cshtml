@@ -1,8 +1,317 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    Layout = null;
+    ViewData["Title"] = "VPN Web Portal - Güvenli ve Hızlı Erişim";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Özel VPN yönetim ve bağlantı portalı. WireGuard ve OpenVPN destekli anlık yapılandırma." />
+    <title>@ViewData["Title"]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="~/css/homeindex.css" rel="stylesheet" />
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+    <div class="loader-shield">
+        <i class="fa-solid fa-shield-halved" style="color: #3b82f6;"></i>
+    </div>
+    <p class="loader-text">Yükleniyor...</p>
 </div>
+
+<!-- Background -->
+<div class="bg-scene">
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+</div>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav id="mainNav">
+    <a href="/" class="nav-brand">
+        <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <span>VPN<em>Portal</em></span>
+    </a>
+    <ul class="nav-links">
+        <li><a href="#features">Özellikler</a></li>
+        <li><a href="#how-it-works">Nasıl Çalışır?</a></li>
+        <li><a href="/Home/About">Proje Hakkında</a></li>
+    </ul>
+    <div class="nav-actions">
+        <a href="/Account/Login" class="btn-ghost" id="nav-login">Giriş Yap</a>
+        <a href="/Account/Register" class="btn-primary" id="nav-register">Kayıt Ol</a>
+    </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+    <div class="hero-content">
+        <div class="hero-badge">
+            <div class="dot"></div>
+            WireGuard & OpenVPN Destekli Sistem
+        </div>
+
+        <div class="floating-shield">
+            <i class="fa-solid fa-server"></i>
+        </div>
+
+        <h1>
+            Özel Bağlantınız.<br>
+            <span class="gradient-text">Merkezi Yönetim.</span>
+        </h1>
+
+        <p>
+            Bu portal üzerinden hesabınızı oluşturun, aktif VPN sunucularımıza göz atın ve size özel yapılandırma (config) dosyanızı saniyeler içinde indirerek güvenle bağlanın.
+        </p>
+
+        <div class="hero-cta">
+            <a href="/Account/Register" class="btn-hero-primary" id="hero-register-btn">
+                <i class="fa-solid fa-rocket"></i>
+                Hesap Oluştur
+            </a>
+            <a href="#features" class="btn-hero-secondary">
+                <i class="fa-solid fa-play"></i>
+                Özellikleri Keşfet
+            </a>
+        </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="num">2</span>
+                <span class="label">Protokol Desteği</span>
+            </div>
+            <div class="hero-stat">
+                <span class="num">QR</span>
+                <span class="label">Hızlı Kurulum</span>
+            </div>
+            <div class="hero-stat">
+                <span class="num"><i class="fa-solid fa-user-shield"></i></span>
+                <span class="label">Yetkilendirme</span>
+            </div>
+            <div class="hero-stat">
+                <span class="num"><i class="fa-solid fa-download"></i></span>
+                <span class="label">Anında Config</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="features" id="features">
+    <div class="features-grid">
+        <div class="section-header" style="grid-column: 1 / -1;">
+            <div class="section-tag">Platform Özellikleri</div>
+            <h2>Modern ve Sade Yönetim</h2>
+            <p>Sadece ihtiyacınız olan özelliklere odaklanan, kolay anlaşılır VPN portal altyapısı.</p>
+        </div>
+
+        <div class="feature-card reveal">
+            <div class="feature-icon icon-blue">
+                <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <h3>QR Kod İle Kurulum</h3>
+            <p>WireGuard yapılandırmanızı telefonunuza eklemek için sunulan özel QR kodu okutmanız yeterlidir.</p>
+        </div>
+
+        <div class="feature-card reveal reveal-delay-1">
+            <div class="feature-icon icon-cyan">
+                <i class="fa-solid fa-file-download"></i>
+            </div>
+            <h3>Anında Config İndirme</h3>
+            <p>Size tahsis edilen OpenVPN (.ovpn) veya WireGuard (.conf) dosyasını tek tıkla bilgisayarınıza indirin.</p>
+        </div>
+
+        <div class="feature-card reveal reveal-delay-2">
+            <div class="feature-icon icon-purple">
+                <i class="fa-solid fa-users-cog"></i>
+            </div>
+            <h3>Hesap ve Profil Yönetimi</h3>
+            <p>Parola yenileme, email doğrulama ve kullanıcı oturumu yönetimi ile güvenli hesap altyapısı.</p>
+        </div>
+
+        <div class="feature-card reveal">
+            <div class="feature-icon icon-green">
+                <i class="fa-solid fa-server"></i>
+            </div>
+            <h3>Admin Sunucu Yönetimi</h3>
+            <p>Yöneticiler için sisteme yeni sunucu ekleme, düzenleme ve port/ip parametrelerini belirleme paneli.</p>
+        </div>
+
+        <div class="feature-card reveal reveal-delay-1">
+            <div class="feature-icon icon-orange">
+                <i class="fa-solid fa-wifi"></i>
+            </div>
+            <h3>Aktif VPN Durumu</h3>
+            <p>Hangi sunucuya ne zaman bağlandığınızı ve bağlantı tercihlerinizi anlık olarak görüntüleyin.</p>
+        </div>
+
+        <div class="feature-card reveal reveal-delay-2">
+            <div class="feature-icon icon-pink">
+                <i class="fa-solid fa-at"></i>
+            </div>
+            <h3>Şifremi Unuttum Desteği</h3>
+            <p>Güvenli token tabanlı şifre sıfırlama işlemi ile hesabınıza daima erişim imkanı.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ PROTOCOLS ═══ -->
+<section class="protocols" id="protocols">
+    <div class="protocols-inner">
+        <div class="section-header reveal">
+            <div class="section-tag">Teknoloji</div>
+            <h2>Desteklenen Protokoller</h2>
+            <p>Sistemimizde endüstri standartlarında kabul görmüş iki temel protokol aktif olarak kullanılmaktadır.</p>
+        </div>
+        <div class="protocol-badges" style="justify-content: center;">
+            <div class="protocol-badge reveal"><i class="fa-solid fa-shield-virus"></i> OpenVPN</div>
+            <div class="protocol-badge reveal reveal-delay-1"><i class="fa-solid fa-bolt"></i> WireGuard</div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="pricing" id="how-it-works">
+    <div class="section-header reveal">
+        <div class="section-tag">Adımlar</div>
+        <h2>Nasıl Bağlanırım?</h2>
+        <p>Sisteme giriş yapıp internet trafiğinizi şifrelemeye başlamak oldukça basittir.</p>
+    </div>
+    <div class="pricing-grid">
+
+        <!-- Step 1 -->
+        <div class="plan-card reveal">
+            <div class="plan-name">1. Kayıt ve Giriş</div>
+            <div class="plan-desc">Öncelikle sistemde bir hesap oluşturun.</div>
+            <ul class="plan-features">
+                <li><i class="fa-solid fa-check"></i> Form bilgilerini doldurun</li>
+                <li><i class="fa-solid fa-check"></i> Hesabınızı onaylayın</li>
+                <li><i class="fa-solid fa-check"></i> Oturum açın</li>
+            </ul>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="plan-card featured reveal reveal-delay-1">
+            <div class="plan-badge">Önemli İşlem</div>
+            <div class="plan-name">2. Sunucu Seçimi</div>
+            <div class="plan-desc">Aktif VPN listesinden uygun olanı belirleyin.</div>
+            <ul class="plan-features">
+                <li><i class="fa-solid fa-check"></i> Sunucu lokasyonunu seçin</li>
+                <li><i class="fa-solid fa-check"></i> OVPN veya WireGuard seçin</li>
+                <li><i class="fa-solid fa-check"></i> Bağlan butonuna tıklayın</li>
+            </ul>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="plan-card reveal reveal-delay-2">
+            <div class="plan-name">3. Yapılandırma</div>
+            <div class="plan-desc">Sistemin verdiği dosyayı kullanın.</div>
+            <ul class="plan-features">
+                <li><i class="fa-solid fa-check"></i> Config dosyanızı (.ovpn/.conf) indirin</li>
+                <li><i class="fa-solid fa-check"></i> Veya ekrandaki QR kodu okutun</li>
+                <li><i class="fa-solid fa-check"></i> Kendi cihazınızdaki istemciye aktarın</li>
+            </ul>
+        </div>
+
+    </div>
+</section>
+
+<!-- ═══ CTA BANNER ═══ -->
+<section class="cta-banner">
+    <div class="cta-inner reveal">
+        <h2>Sistemi Kullanmaya Başlayın</h2>
+        <p>Hemen hesabınızı oluşturun ve sunulan yapılandırmalar ile doğrudan bağlantı kurun.</p>
+        <div class="cta-buttons">
+            <a href="/Account/Register" class="btn-hero-primary" id="cta-register-btn">
+                <i class="fa-solid fa-user-plus"></i>
+                Hesap Oluştur
+            </a>
+            <a href="/Account/Login" class="btn-hero-secondary" id="cta-login-btn">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                Giriş Yap
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+    <div class="footer-inner">
+        <div class="footer-brand">
+            <a href="/" class="nav-brand" style="display:inline-flex;">
+                <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
+                <span style="color:var(--text);font-size:1.2rem;font-weight:800;">VPN<em style="color:var(--primary);font-style:normal;">Portal</em></span>
+            </a>
+            <p>Modern teknoloji yığınıyla geliştirilmiş özel VPN doğrulama ve yapılandırma platformu.</p>
+        </div>
+
+        <div class="footer-col">
+            <h4>Bağlantılar</h4>
+            <ul>
+                <li><a href="#features">Özellikler</a></li>
+                <li><a href="#how-it-works">Nasıl Çalışır</a></li>
+                <li><a href="#protocols">Protokoller</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-col">
+            <h4>Hesap</h4>
+            <ul>
+                <li><a href="/Account/Login">Giriş Yap</a></li>
+                <li><a href="/Account/Register">Kayıt Ol</a></li>
+            </ul>
+        </div>
+
+        <div class="footer-col">
+            <h4>Bilgi</h4>
+            <ul>
+                <li><a href="/Home/About">Proje Hakkında</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <p>© @DateTime.Now.Year VPN Web Portal Projesi.</p>
+        <p style="display:flex;align-items:center;gap:8px;">
+            <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;"></span>
+            Sistem Aktif
+        </p>
+    </div>
+</footer>
+
+<script>
+    // Navbar scroll effect
+    const nav = document.getElementById('mainNav');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // Scroll reveal animation
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    reveals.forEach(el => observer.observe(el));
+
+    // Loading overlay for navigation
+    document.querySelectorAll('a[href]').forEach(link => {
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href === '/') return;
+        link.addEventListener('click', (e) => {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        });
+    });
+</script>
+
+</body>
+</html>

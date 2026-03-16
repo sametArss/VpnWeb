@@ -187,7 +187,7 @@ namespace BusiniessLayer.Concrete
 
             await _userRepo.UpdateAsync(user);
 
-            string link = $"https://localhost:7177/Account/ResetPassword?token={token}";
+            string link = $"https://sametarslan.com.tr/Account/ResetPassword?token={token}";
 
             string body = $@"
         Merhaba {user.FullName},<br>

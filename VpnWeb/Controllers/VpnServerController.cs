@@ -1,9 +1,12 @@
 ﻿using BusiniessLayer.Abstract;
 using EntityLayer.Concrete;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace VpnWeb.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class VpnServerController : Controller
     {
         private readonly IVpnServerService _vpnServerService;

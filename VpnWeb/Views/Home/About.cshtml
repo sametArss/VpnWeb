@@ -1,0 +1,187 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Proje Hakkında - VPN Portal";
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="VPN Web Portal projesi hakkında teknik detaylar ve platformun amacı." />
+    <title>@ViewData["Title"]</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="~/css/about.css" rel="stylesheet" />
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay">
+    <div class="loader-shield"><i class="fa-solid fa-shield-halved" style="color:#3b82f6;"></i></div>
+    <p class="loader-text">Loading...</p>
+</div>
+
+<!-- Background -->
+<div class="bg-scene">
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+</div>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav id="mainNav">
+    <a href="/" class="nav-brand">
+        <div class="shield-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <span>VPN<em>Portal</em></span>
+    </a>
+    <ul class="nav-links">
+        <li><a href="/">Anasayfa</a></li>
+        <li><a href="/#features">Özellikler</a></li>
+        <li><a href="/Home/About" class="active">Proje Hakkında</a></li>
+    </ul>
+    <div class="nav-actions">
+        <a href="/Account/Login" class="btn-ghost" id="nav-login">Giriş Yap</a>
+        <a href="/Account/Register" class="btn-primary" id="nav-register">Kayıt Ol</a>
+    </div>
+</nav>
+
+<!-- ═══ PAGE HERO ═══ -->
+<section class="page-hero">
+    <div class="page-tag">Proje Hakkında</div>
+    <h1>Teknoloji ve <span class="gradient-text">Mimari</span></h1>
+    <p>
+        Bu proje, yetkilendirilmiş kullanıcıların VPN yapılandırma dosyalarını oluşturup yönetebildiği;
+        ASP.NET Core mimarisi üzerine kurulu modern bir web uygulama platformudur.
+    </p>
+</section>
+
+<!-- ═══ MISSION ═══ -->
+<section class="mission">
+    <div class="mission-grid">
+        <!-- Text -->
+        <div class="mission-text reveal">
+            <h2>Amacımız: <span class="gradient-text">Merkezi</span> VPN Yönetimi</h2>
+            <p>
+                Bu uygulama, bir organizasyonun veya bireyin kendi VPN altyapısını kurup bu altyapıyı 
+                bir web arayüzü üzerinden yönetebilmesine olanak tanımayı hedefler. 
+            </p>
+            <p>
+                Kullanıcılar sisteme giriş yaparak anlık olarak bir sunucuya eşleşebilir, OpenVPN veya WireGuard protokellerini seçebilir 
+                ve kendilerine özel yapılandırma dosyasını indirerek kendi cihazlarından güvenli bağlantı kurabilirler.
+            </p>
+            <div class="mission-points">
+                <div class="mission-point reveal reveal-delay-1">
+                    <div class="mp-icon mp-blue"><i class="fa-solid fa-code"></i></div>
+                    <div>
+                        <h4>ASP.NET Core Altyapısı</h4>
+                        <p>Modern ve güvenli C# .NET ekosistemi ile geliştirilmiş Controller ve Service yapıları.</p>
+                    </div>
+                </div>
+                <div class="mission-point reveal reveal-delay-2">
+                    <div class="mp-icon mp-cyan"><i class="fa-solid fa-mobile-screen"></i></div>
+                    <div>
+                        <h4>QR Kod Entegrasyonu</h4>
+                        <p>Mobil istemciler için QRCoder kütüphanesi yardımıyla dinamik oluşturulan yapılandırma barkodları.</p>
+                    </div>
+                </div>
+                <div class="mission-point reveal reveal-delay-3">
+                    <div class="mp-icon mp-purple"><i class="fa-solid fa-database"></i></div>
+                    <div>
+                        <h4>Entity Framework ve Katmanlı Mimari</h4>
+                        <p>Veri tabanı ile etkileşim, modern ORM pratikleri ve repository mantığına göre yapılandırılmıştır.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual -->
+        <div class="mission-visual">
+            <div class="orbit-ring ring-1"><div class="orbit-dot"></div></div>
+            <div class="orbit-ring ring-2"><div class="orbit-dot"></div></div>
+            <div class="shield-big"><i class="fa-solid fa-laptop-code"></i></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ APP WORKFLOW ═══ -->
+<section class="values">
+    <div class="section-header reveal">
+        <div class="section-tag">İş Akışı</div>
+        <h2>Sistem Nasıl Çalışıyor?</h2>
+        <p>Projenin teknik olarak ne sunduğunu ve hangi aşamalardan geçtiğini özetledik.</p>
+    </div>
+    <div class="values-grid">
+        <div class="value-card reveal" style="--card-color: #3b82f6;">
+            <div class="value-icon">1️⃣</div>
+            <h3>Oturum Yönetimi</h3>
+            <p>Kullanıcı tabanlı kimlik doğrulama, JWT veya Cookie tabanlı (token temelli) güvenli oturum açma işlemleri yapılır.</p>
+        </div>
+        <div class="value-card reveal reveal-delay-1" style="--card-color: #06b6d4;">
+            <div class="value-icon">2️⃣</div>
+            <h3>Profil ve İşlemler</h3>
+            <p>Parola sıfırlama, e-posta onay mekanizmaları (Verify Email) gibi temel identity fonksiyonları sunulur.</p>
+        </div>
+        <div class="value-card reveal reveal-delay-2" style="--card-color: #8b5cf6;">
+            <div class="value-icon">3️⃣</div>
+            <h3>Sunucu Seçimi</h3>
+            <p>Veritabanında kayıtlı olan aktif sunuculardan OpenVPN veya WireGuard protokülüne göre profil tahsil edilir.</p>
+        </div>
+        <div class="value-card reveal reveal-delay-3" style="--card-color: #10b981;">
+            <div class="value-icon">4️⃣</div>
+            <h3>İndirme ve Kurulum</h3>
+            <p>Seçilen protokollere göre spesifik (.ovpn veya .conf) dosyaları sunulur, ardından sistemden güvenle çıkış yapılabilir.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ CTA BANNER ═══ -->
+<section class="cta-banner">
+    <div class="cta-inner reveal">
+        <h2>Uygulamayı Dene</h2>
+        <p>Arayüzü incelemek ve altyapının işleyişini görmek için şimdi giriş yapabilirsiniz.</p>
+        <div class="cta-btns">
+            <a href="/Account/Register" class="btn-hero-primary" id="cta-register-btn">
+                <i class="fa-solid fa-user-plus"></i> Kayıt Ol
+            </a>
+            <a href="/" class="btn-hero-secondary">
+                <i class="fa-solid fa-arrow-left"></i> Anasayfaya Dön
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+    <div class="footer-bottom">
+        <p>© @DateTime.Now.Year VPN Web Portal Projesi.</p>
+        <p style="display:flex;align-items:center;gap:8px;">
+            <span style="width:7px;height:7px;background:#10b981;border-radius:50%;display:inline-block;"></span>
+            Sistem Aktif
+        </p>
+    </div>
+</footer>
+
+<script>
+    const nav = document.getElementById('mainNav');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    reveals.forEach(el => observer.observe(el));
+
+    document.querySelectorAll('a[href]').forEach(link => {
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#')) return;
+        link.addEventListener('click', () => {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        });
+    });
+</script>
+
+</body>
+</html>
