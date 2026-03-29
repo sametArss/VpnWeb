@@ -1,4 +1,4 @@
-﻿using BusiniessLayer.Abstract;
+using BusiniessLayer.Abstract;
 using BusiniessLayer.Security;
 using DataAcsessLayer.Concrete.Context;
 using EntityLayer.Concrete;
@@ -76,18 +76,21 @@ namespace VpnWeb.Controllers
         }
 
 
-        [HttpGet]  // Buraya güzel bi sayfa yapılacak ileride çalışıyor
+        [HttpGet]
         public async Task<IActionResult> VerifyEmail(string token)
         {
             try
             {
                 await _userService.VerifyEmailAsync(token);
-                return Ok("Hesabınız başarıyla doğrulandı! Artık giriş yapabilirsiniz.");
-                // Veya: return Redirect("https://seninsiten.com/login?verified=true");
+                ViewBag.Status = "Success";
+                ViewBag.Message = "Hesabınız başarıyla doğrulandı!";
+                return View();
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                ViewBag.Status = "Error";
+                ViewBag.Message = ex.Message;
+                return View();
             }
         }
 
@@ -173,8 +176,8 @@ namespace VpnWeb.Controllers
             try
             {
                 await _userService.ResetPasswordAsync(dto);
-                TempData["Success"] = "Şifreniz başarıyla güncellendi! Artık yeni şifrenizle giriş yapabilirsiniz.";
-                return RedirectToAction("Login");
+                ViewBag.Status = "Success";
+                return View(dto);
             }
             catch (Exception ex)
             {

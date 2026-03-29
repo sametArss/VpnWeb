@@ -74,7 +74,7 @@ namespace BusiniessLayer.Concrete
 
             // ⚠️ DÜZELTME BURADA: Controller ismin 'Account' olduğu için link 'Account' olmalı
             // İlerde port değişirse diye appsettings'den almak en iyisi ama şimdilik manuel:
-            string verificationLink = $"https://localhost:7177/Account/VerifyEmail?token={verificationToken}";
+            string verificationLink = $"https://sametarslan.com.tr/Account/VerifyEmail?token={verificationToken}";
 
             string emailBody = GetEmailTemplate(
                 title: "E-posta Doğrulama",
@@ -194,7 +194,7 @@ namespace BusiniessLayer.Concrete
 
             await _userRepo.UpdateAsync(user);
 
-            string link = $"https://localhost:7177/Account/ResetPassword?token={token}";
+            string link = $"https://sametarslan.com.tr/Account/ResetPassword?token={token}";
 
             string body = GetEmailTemplate(
                 title: "Şifre Sıfırlama Talebi",

@@ -1,0 +1,165 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Email Verification";
+    var status = ViewBag.Status as string;
+    var message = ViewBag.Message as string;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GlobalShield</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="~/css/login.css" rel="stylesheet" />
+    <style>
+        .verify-card {
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        .status-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @@keyframes bounceIn {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .success-icon {
+            color: #4ade80;
+            filter: drop-shadow(0 0 15px rgba(74, 222, 128, 0.4));
+        }
+
+        .error-icon {
+            color: #f87171;
+            filter: drop-shadow(0 0 15px rgba(248, 113, 113, 0.4));
+        }
+
+        .message-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
+        }
+
+        .message-text {
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .countdown {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        #seconds {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.1rem;
+            margin: 0 4px;
+        }
+
+        .btn-redirect {
+            display: block;
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+            margin-top: 1rem;
+        }
+
+        .btn-redirect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(14, 165, 233, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="map-bg"></div>
+
+    <div class="login-container">
+        <div class="brand-logo">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h1>GlobalShield</h1>
+            <p class="subtitle">Secure . Anonymous . Private</p>
+        </div>
+
+        <div class="verify-card">
+            @if (status == "Success")
+            {
+                <div class="status-icon success-icon">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h2 class="message-title">Doğrulama Başarılı!</h2>
+                <p class="message-text">
+                    Hesabınız başarıyla aktifleştirildi. Artık GlobalShield dünyasında güvendesiniz.
+                </p>
+
+                <div class="countdown">
+                    Giriş sayfasına <span id="seconds">5</span> saniye içinde yönlendiriliyorsunuz...
+                </div>
+
+                <a href="@Url.Action("Login", "Account")" class="btn-redirect">
+                    Hemen Giriş Yap <i class="fa-solid fa-right-to-bracket" style="margin-left: 8px;"></i>
+                </a>
+            }
+            else
+            {
+                <div class="status-icon error-icon">
+                    <i class="fa-solid fa-circle-xmark"></i>
+                </div>
+                <h2 class="message-title">İşlem Gerçekleştirilemedi</h2>
+                <p class="message-text">
+                    @message <br />
+                    Lütfen linkin doğruluğunu kontrol edin veya yeni bir doğrulama talebi oluşturun.
+                </p>
+
+                <a href="@Url.Action("Login", "Account")" class="btn-redirect" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
+                    Giriş Sayfasına Dön
+                </a>
+            }
+        </div>
+    </div>
+
+    @if (status == "Success")
+    {
+        <script>
+            let seconds = 5;
+            const secondsElement = document.getElementById('seconds');
+
+            const countdown = setInterval(() => {
+                seconds--;
+                secondsElement.innerText = seconds;
+                if (seconds <= 0) {
+                    clearInterval(countdown);
+                    window.location.href = '@Url.Action("Login", "Account")';
+                }
+            }, 1000);
+        </script>
+    }
+</body>
+
+</html>

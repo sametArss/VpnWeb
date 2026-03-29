@@ -75,8 +75,9 @@
                 <label>Password</label>
                 <div class="input-wrapper">
                     <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" required
-                        autocomplete="new-password" />
+                        autocomplete="new-password" id="passwordInput" />
                     <i class="fa-solid fa-lock"></i>
+                    <i class="fa-regular fa-eye eye-toggle" id="togglePassword"></i>
                 </div>
             </div>
 
@@ -121,6 +122,13 @@
                 document.getElementById('loadingOverlay').style.display = 'flex';
             });
         });
+
+        // Password visibility toggle
+        const togglePassword = document.getElementById('togglePassword');
+        const passwordInput = document.getElementById('passwordInput');
+
+        togglePassword.addEventListener('mouseenter', () => passwordInput.type = 'text');
+        togglePassword.addEventListener('mouseleave', () => passwordInput.type = 'password');
     </script>
 
 </body>
