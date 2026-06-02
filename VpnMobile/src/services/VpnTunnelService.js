@@ -176,12 +176,15 @@ class VpnTunnelService {
         openVPNConfig: cleanedConfig,
         androidOptions: {
           Notification: {
+            openActivityPackageName: "com.sametarss.vpnweb.MainActivity",
             titleNotification: "GlobalShield VPN",
             titleConnected: "Connected to " + serverName
           },
-          useDefaultRoute: false,
-          useDefaultRouteV6: false,
-          overrideDns: false,
+          useDefaultRoute: true,
+          useDefaultRouteV6: true,
+          overrideDNS: true,
+          DNS1: "8.8.8.8",
+          DNS2: "1.1.1.1",
           compatibilityMode: 0,
           useOpenVPN3: true
         }
