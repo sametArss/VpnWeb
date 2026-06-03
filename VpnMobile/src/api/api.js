@@ -4,12 +4,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // DİKKAT: Bilgisayarının yerel IP adresini buraya yazmalısın. 
 // Komut satırına 'ipconfig' yazarak IPv4 adresini bulabilirsin.
 // Örnek: 192.168.1.15
-const BASE_URL = 'http://172.20.10.6:5128/api'; // Android emülatör için varsayılan
+const BASE_URL = 'https://thin-parts-smoke.loca.lt/api'; // Android emülatör için varsayılan
 
 const api = axios.create({
   baseURL: BASE_URL,
+  timeout: 6000, // 6 saniye zaman aşımı (isteklerin sonsuza kadar asılı kalmasını önler)
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // ngrok tarayıcı uyarı sayfasını (HTML) atlayıp doğrudan JSON dönmesini sağlar
   },
 });
 

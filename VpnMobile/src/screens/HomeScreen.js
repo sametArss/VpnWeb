@@ -2,14 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Alert, ScrollView, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/api';
 import VpnTunnelService from '../services/VpnTunnelService';
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [protocol, setProtocol] = useState(1); // 1: WireGuard (default), 2: OpenVPN
   const [serverName, setServerName] = useState('Auto Select');
+  const [ipAddress, setIpAddress] = useState('');
+  const [connectedAt, setConnectedAt] = useState('');
+  const [clientConfig, setClientConfig] = useState('');
   
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -33,6 +37,52 @@ const HomeScreen = ({ navigation }) => {
     });
     return unsubscribe;
   }, [navigation]);
+
+  useEffect(() => {
+    const handleAutoConnect = async () => {
+      if (route.params?.autoConnectServer) {
+        const { id, name } = route.params.autoConnectServer;
+        
+        // Parametreyi hemen temizle ki tekrar focus olunca yeniden bağlanmaya çalışmasın
+        navigation.setParams({ autoConnectServer: undefined });
+
+        if (isConnected) {
+          // Eğer zaten bağlıysa ve seçilen sunucu farklıysa kullanıcıya sor
+          if (serverName !== name) {
+            Alert.alert(
+              'Sunucu Değiştir',
+              `Mevcut sunucu bağlantısını kesip ${name} sunucusuna bağlanmak istiyor musunuz?`,
+              [
+                { text: 'İptal', style: 'cancel' },
+                { 
+                  text: 'Bağlan', 
+                  onPress: async () => {
+                    setConnecting(true);
+                    try {
+                      await VpnTunnelService.stop();
+                      try {
+                        await api.post('/connect/disconnect');
+                      } catch (e) {}
+                      setIsConnected(false);
+                      await AsyncStorage.removeItem('active_vpn_connection');
+                      await initiateConnection(id, name);
+                    } catch (err) {
+                      Alert.alert('Hata', 'Mevcut bağlantı kesilemedi.');
+                      setConnecting(false);
+                    }
+                  } 
+                }
+              ]
+            );
+          }
+        } else {
+          await initiateConnection(id, name);
+        }
+      }
+    };
+
+    handleAutoConnect();
+  }, [route.params?.autoConnectServer, isConnected, serverName]);
 
   useEffect(() => {
     if (connecting) {
@@ -68,6 +118,18 @@ const HomeScreen = ({ navigation }) => {
         setIsConnected(true);
         setServerName(response.data.name);
         setProtocol(response.data.protocol);
+        setIpAddress(response.data.ipAddress);
+        setConnectedAt(response.data.connectedAt);
+        setClientConfig(response.data.clientConfig);
+
+        await AsyncStorage.setItem('active_vpn_connection', JSON.stringify({
+          isConnected: true,
+          name: response.data.name,
+          ipAddress: response.data.ipAddress,
+          protocol: response.data.protocol,
+          connectedAt: response.data.connectedAt,
+          clientConfig: response.data.clientConfig
+        }));
 
         // Zaten bağlıysa direkt detay ekranına atabiliriz
         navigation.navigate('Connected', {
@@ -80,32 +142,52 @@ const HomeScreen = ({ navigation }) => {
       } else {
         setIsConnected(false);
         setServerName('Auto Select');
+        setIpAddress('');
+        setConnectedAt('');
+        setClientConfig('');
+        await AsyncStorage.removeItem('active_vpn_connection');
       }
     } catch (error) {
+      // API isteği başarısız olursa (örn: VPN yerel bilgisayardaki API'yi engellerse) cihazın kendi VPN durumunu kontrol et
+      try {
+        const isNativeActive = await VpnTunnelService.isActive();
+        if (isNativeActive) {
+          const savedRaw = await AsyncStorage.getItem('active_vpn_connection');
+          if (savedRaw) {
+            const saved = JSON.parse(savedRaw);
+            setIsConnected(true);
+            setServerName(saved.name);
+            setProtocol(saved.protocol);
+            setIpAddress(saved.ipAddress);
+            setConnectedAt(saved.connectedAt);
+            setClientConfig(saved.clientConfig);
+            return;
+          }
+        }
+      } catch (nativeErr) {
+        console.error('Native status check error:', nativeErr);
+      }
+
       if (error.response?.status !== 401) {
         console.error('Status check error:', error);
       }
     }
   };
 
-  const handleConnect = async () => {
-    if (isConnected) {
-      handleDisconnect();
-      return;
-    }
-
+  const initiateConnection = async (targetServerId = 0, targetServerName = null) => {
     setConnecting(true);
+    const finalServerName = targetServerName || serverName;
     try {
       // 1. Backend'den config al
       const response = await api.post('/connect/connect', {
         protocol: protocol,
-        serverId: 0 
+        serverId: targetServerId
       });
 
       // 2. Telefonda gerçek VPN tünelini başlat
       try {
         console.log(`${protocol === 1 ? 'WireGuard' : 'OpenVPN'} tunnel starting with IP: ${response.data.ipAddress}`);
-        const success = await VpnTunnelService.start(protocol, response.data.clientConfig, response.data.ipAddress, response.data.serverName);
+        const success = await VpnTunnelService.start(protocol, response.data.clientConfig, response.data.ipAddress, finalServerName);
         
         if (!success) {
            // success false dönerse (örneğin izin diyaloğu açıldıysa) akışı durduruyoruz
@@ -120,9 +202,23 @@ const HomeScreen = ({ navigation }) => {
       }
 
       setIsConnected(true);
+      setServerName(finalServerName);
+      setIpAddress(response.data.ipAddress);
+      setConnectedAt(response.data.connectedAt);
+      setClientConfig(response.data.clientConfig);
+
+      await AsyncStorage.setItem('active_vpn_connection', JSON.stringify({
+        isConnected: true,
+        name: finalServerName,
+        ipAddress: response.data.ipAddress,
+        protocol: response.data.protocol,
+        connectedAt: response.data.connectedAt,
+        clientConfig: response.data.clientConfig
+      }));
+
       navigation.navigate('Connected', {
         ipAddress: response.data.ipAddress,
-        serverName: serverName,
+        serverName: finalServerName,
         protocol: response.data.protocol,
         connectedAt: response.data.connectedAt,
         clientConfig: response.data.clientConfig
@@ -133,6 +229,14 @@ const HomeScreen = ({ navigation }) => {
     } finally {
       setConnecting(false);
     }
+  };
+
+  const handleConnect = async () => {
+    if (isConnected) {
+      handleDisconnect();
+      return;
+    }
+    await initiateConnection(0);
   };
 
   const handleDisconnect = async () => {
@@ -151,6 +255,10 @@ const HomeScreen = ({ navigation }) => {
 
       setIsConnected(false);
       setServerName('Auto Select');
+      setIpAddress('');
+      setConnectedAt('');
+      setClientConfig('');
+      await AsyncStorage.removeItem('active_vpn_connection');
     } catch (error) {
       Alert.alert('Hata', 'Bağlantı kesilirken bir hata oluştu.');
     } finally {
@@ -197,7 +305,13 @@ const HomeScreen = ({ navigation }) => {
           {isConnected && (
             <TouchableOpacity 
               style={styles.detailsButton} 
-              onPress={() => navigation.navigate('Connected', { serverName, protocol })}
+              onPress={() => navigation.navigate('Connected', { 
+                ipAddress, 
+                serverName, 
+                protocol, 
+                connectedAt, 
+                clientConfig 
+              })}
             >
               <Text style={styles.detailsButtonText}>View Connection Details</Text>
               <MaterialCommunityIcons name="chevron-right" size={20} color="#3b82f6" />
@@ -260,8 +374,8 @@ const styles = StyleSheet.create({
     })
   },
   connectedButton: { 
-    backgroundColor: '#10b981',
-    shadowColor: '#10b981',
+    backgroundColor: '#ef4444',
+    shadowColor: '#ef4444',
   },
   statusLabelContainer: { alignItems: 'center', marginTop: 30 },
   connectText: { color: '#fff', fontSize: 22, fontWeight: '600' },

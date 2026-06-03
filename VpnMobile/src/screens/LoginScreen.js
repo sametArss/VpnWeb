@@ -1,25 +1,57 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert, 
-  SafeAreaView, 
-  KeyboardAvoidingView, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  SafeAreaView,
+  KeyboardAvoidingView,
   Platform,
   ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../api/api';
+import VpnTunnelService from '../services/VpnTunnelService';
 
 const LoginScreen = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isVpnActive, setIsVpnActive] = useState(false);
+
+  useEffect(() => {
+    const checkVpnStatus = async () => {
+      try {
+        const active = await VpnTunnelService.isActive();
+        setIsVpnActive(active);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    checkVpnStatus();
+    
+    // Periyodik kontrol yapalım (VPN kapatılırsa arayüz güncellensin)
+    const interval = setInterval(checkVpnStatus, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleForceDisconnect = async () => {
+    setLoading(true);
+    try {
+      await VpnTunnelService.stop();
+      await AsyncStorage.removeItem('active_vpn_connection');
+      setIsVpnActive(false);
+      Alert.alert('Başarılı', 'Aktif VPN tüneli kapatıldı. İnternetiniz geri gelmiş olmalı.');
+    } catch (e) {
+      Alert.alert('Hata', 'VPN kapatılamadı.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -37,7 +69,8 @@ const LoginScreen = ({ onLoginSuccess }) => {
     } catch (error) {
       console.error(error);
       const message = error.response?.data?.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol edin.';
-      Alert.alert('Hata', message);
+      const errorDetail = error.message ? `\n\n(Hata Detayı: ${error.message})` : '';
+      Alert.alert('Hata', message + errorDetail);
     } finally {
       setLoading(false);
     }
@@ -45,13 +78,13 @@ const LoginScreen = ({ onLoginSuccess }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
         <View style={styles.statusDotContainer}>
-            <View style={styles.pulseDot} />
-            <Text style={styles.statusText}>System Operational</Text>
+          <View style={styles.pulseDot} />
+          <Text style={styles.statusText}>System Operational</Text>
         </View>
 
         <View style={styles.header}>
@@ -61,6 +94,15 @@ const LoginScreen = ({ onLoginSuccess }) => {
           <Text style={styles.title}>GlobalShield</Text>
           <Text style={styles.subtitle}>Secure . Anonymous . Private</Text>
         </View>
+
+        {isVpnActive && (
+          <TouchableOpacity style={styles.emergencyBanner} onPress={handleForceDisconnect}>
+            <MaterialCommunityIcons name="power" size={20} color="#fff" />
+            <Text style={styles.emergencyBannerText}>
+              Aktif VPN Kapat (İnternet Yoksa Tıkla)
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
@@ -92,17 +134,17 @@ const LoginScreen = ({ onLoginSuccess }) => {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <MaterialCommunityIcons 
-                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                  size={20} 
-                  color="rgba(255,255,255,0.4)" 
+                <MaterialCommunityIcons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={20}
+                  color="rgba(255,255,255,0.4)"
                 />
               </TouchableOpacity>
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.loginButton, loading && styles.disabledButton]} 
+          <TouchableOpacity
+            style={[styles.loginButton, loading && styles.disabledButton]}
             onPress={handleLogin}
             disabled={loading}
           >
@@ -111,7 +153,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
             ) : (
               <>
                 <Text style={styles.loginButtonText}>Secure Login</Text>
-                <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" style={{marginLeft: 10}} />
+                <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" style={{ marginLeft: 10 }} />
               </>
             )}
           </TouchableOpacity>
@@ -179,6 +221,27 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.5)',
     marginTop: 5,
     letterSpacing: 2,
+  },
+  emergencyBanner: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    elevation: 3,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4
+  },
+  emergencyBannerText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 13
   },
   form: {
     width: '100%',

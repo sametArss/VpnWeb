@@ -130,6 +130,21 @@ class VpnTunnelService {
         config.allowedIPs = ["0.0.0.0/0"];
       }
 
+      // Güvenli kamuya açık DNS sunucularını (8.8.8.8 ve 1.1.1.1) arayüze enjekte et.
+      // Sunucu tarafında üretilen config'de geçersiz, boş veya yerel ağ DNS'i varsa isim çözünürlüğü (DNS) telefonda çalışmayabilir.
+      // Tarayıcılar (Chrome) kendi içlerinde HTTPS üzerinden DNS (DoH) kullandığı için Google açılabilir, ancak React Native (OkHttp)
+      // sistem DNS'ini kullandığından ngrok adresini çözemeyip hata verecektir.
+      if (!config.dns || config.dns.length === 0) {
+        config.dns = ["8.8.8.8", "1.1.1.1"];
+      } else {
+        if (!config.dns.includes("8.8.8.8")) {
+          config.dns.push("8.8.8.8");
+        }
+        if (!config.dns.includes("1.1.1.1")) {
+          config.dns.push("1.1.1.1");
+        }
+      }
+
       console.log("Initializing Native Backend...");
       await WireGuardVPN.initialize();
 

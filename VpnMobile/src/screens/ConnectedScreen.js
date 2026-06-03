@@ -2,8 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Easing, ScrollView, Clipboard, Platform } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../api/api';
 import VpnTunnelService from '../services/VpnTunnelService';
+
+const parseUtcDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+    return new Date(dateStr + 'Z');
+  }
+  return new Date(dateStr);
+};
 
 const ConnectedScreen = ({ navigation, route }) => {
   const [duration, setDuration] = useState(0);
@@ -23,7 +32,35 @@ const ConnectedScreen = ({ navigation, route }) => {
       useNativeDriver: true,
     }).start();
 
-    const startTime = new Date(route.params?.connectedAt || new Date()).getTime();
+    let startTime = parseUtcDate(route.params?.connectedAt).getTime();
+
+    const fetchActiveDetails = async () => {
+      try {
+        const response = await api.get('/connect/status');
+        if (response.data.isConnected) {
+          setIpAddress(response.data.ipAddress);
+          setServerName(response.data.name);
+          setProtocol(response.data.protocol === 1 ? 'WireGuard' : 'OpenVPN');
+          setConfig(response.data.clientConfig || '');
+          
+          startTime = parseUtcDate(response.data.connectedAt).getTime();
+          // Süreyi anlık olarak hemen güncelle
+          const now = new Date().getTime();
+          setDuration(Math.floor((now - startTime) / 1000));
+        } else {
+          // Eğer bağlantı aktif değilse ana sayfaya yönlendir
+          navigation.replace('HomeMain');
+        }
+      } catch (err) {
+        console.error("Failed to fetch connection details:", err);
+      }
+    };
+
+    // Eğer parametreler eksik geldiyse veya varsayılan değerlerdeyse API'den çek
+    if (route.params?.ipAddress === '---.---.---.---' || !route.params?.clientConfig || !route.params?.connectedAt) {
+      fetchActiveDetails();
+    }
+
     const updateTimer = () => {
       const now = new Date().getTime();
       setDuration(Math.floor((now - startTime) / 1000));
@@ -53,7 +90,11 @@ const ConnectedScreen = ({ navigation, route }) => {
       await VpnTunnelService.stop();
       
       // 2. Backend bağlantısını kes
-      await api.post('/connect/disconnect');
+      try {
+        await api.post('/connect/disconnect');
+      } catch (e) {}
+      
+      await AsyncStorage.removeItem('active_vpn_connection');
       navigation.replace('HomeMain');
     } catch (error) {
       Alert.alert('Hata', 'Bağlantı kesilemedi.');
