@@ -1,4 +1,4 @@
-﻿using BusiniessLayer.Abstract;
+using BusiniessLayer.Abstract;
 using DataAcsessLayer.Abstract;
 using EntityLayer.Concrete;
 using Microsoft.Extensions.Logging;
@@ -138,7 +138,17 @@ namespace BusiniessLayer.Concrete
                 userId, GetEmail(), vpnServerId, protocol, GetIp());
 
             if (await HasActiveVpnAsync(userId))
-                throw new Exception("Zaten aktif VPN bağlantınız var.");
+            {
+                _logger.LogInformation("[VPN] User already has an active connection. Disconnecting previous connection first | UserId={UserId}", userId);
+                try
+                {
+                    await DisconnectAsync(userId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[VPN] Failed to disconnect previous connection, proceeding with new connection | UserId={UserId}", userId);
+                }
+            }
 
             var server = await _vpnServerRepo.GetByIdAsync(vpnServerId);
 
